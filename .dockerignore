@@ -1,0 +1,15 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!packages/
+!packages/catalog/
+!packages/catalog/**
+!packages/mcp/
+!packages/mcp/**
+!scripts/
+!scripts/build-catalog.mjs
+**/node_modules/
+**/dist/
+**/.npmrc
+**/.env*

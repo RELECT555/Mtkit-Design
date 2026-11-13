@@ -1,0 +1,117 @@
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --motion-out: cubic-bezier(.23, 1, .32, 1);
+    --route-in: 0px;
+  }
+
+  :root[data-route-direction="forward"] { --route-in: 14px; }
+  :root[data-route-direction="back"] { --route-in: -14px; }
+  .site-header { view-transition-name: site-navigation; }
+
+  ::view-transition { background: var(--catalog-canvas); }
+
+  ::view-transition-old(root) {
+    animation: 180ms var(--motion-out) both route-out;
+  }
+
+  ::view-transition-new(root) {
+    animation: 260ms var(--motion-out) both route-in;
+  }
+
+  ::view-transition-group(site-navigation) { animation-duration: 180ms; }
+
+  @keyframes route-out {
+    to { opacity: 0; transform: translateX(calc(var(--route-in) * -.65)); }
+  }
+
+  @keyframes route-in {
+    from { opacity: 0; transform: translateX(var(--route-in)); }
+  }
+
+  .entry-dialog[open]:is([data-animate], [data-exiting]) {
+    transition: opacity 240ms var(--motion-out), transform 240ms var(--motion-out);
+  }
+
+  .entry-dialog[open]:is([data-animate], [data-exiting])::backdrop {
+    transition: opacity 210ms var(--motion-out);
+  }
+
+  @starting-style {
+    .entry-dialog[open][data-animate] {
+      opacity: 0;
+      transform: translateY(14px) scale(.975);
+    }
+
+    .entry-dialog[open][data-animate]::backdrop { opacity: 0; }
+  }
+
+  .entry-dialog[open][data-exiting] {
+    opacity: 0;
+    transform: translateY(8px) scale(.985);
+    transition-duration: 145ms;
+  }
+
+  .entry-dialog[open][data-exiting]::backdrop {
+    opacity: 0;
+    transition-duration: 145ms;
+  }
+
+  .card-grid[data-page-direction="next"] { --card-in: 10px; }
+  .card-grid[data-page-direction="previous"] { --card-in: -10px; }
+
+  .card-grid[data-page-direction] > .tool {
+    animation: 195ms var(--motion-out) backwards card-in;
+  }
+
+  .card-grid[data-page-direction] > .tool:nth-child(n + 4) { animation-delay: 18ms; }
+  .card-grid[data-page-direction] > .tool:nth-child(n + 7) { animation-delay: 36ms; }
+  .card-grid[data-page-direction] > .tool:nth-child(n + 10) { animation-delay: 54ms; }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translate(var(--card-in), 6px); }
+  }
+
+  .shader-library[data-animate-detail] .shader-studio {
+    animation: 180ms var(--motion-out) shader-detail-in;
+  }
+
+  @keyframes shader-detail-in {
+    from { opacity: 0; transform: translateY(7px); }
+  }
+
+  .featured-item,
+  .tool > * {
+    transition: transform 190ms var(--motion-out);
+  }
+
+  #main :is(.tool-actions, .pagination, .workflow-controls, .switcher, .shader-preview-tools) button,
+  .hero-actions .action,
+  .logo-download,
+  .entry-dialog .detail-top button {
+    transition: transform 150ms var(--motion-out);
+  }
+
+  #main :is(.tool-actions, .pagination, .workflow-controls, .switcher, .shader-preview-tools) button:enabled:active:not(:focus-visible),
+  :is(.hero-actions .action, .logo-download, .entry-dialog .detail-top button):active:not(:focus-visible) {
+    transform: scale(.96);
+    transition-duration: 95ms;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .featured-item:hover,
+    .tool:has(.tool-actions :hover) > * {
+      transform: translateY(-3px);
+      border-color: var(--catalog-accent);
+    }
+  }
+}

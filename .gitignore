@@ -1,0 +1,12 @@
+/.playwright-mcp/
+/.playwright-cli/
+/.agents/plugins/marketplace.json
+/.mtkit-install-lock/
+/.mtkit-skills-stage-*/
+node_modules/
+dist/
+/plugins/mtkit-design/.skills-stage-*/
+/plugins/mtkit-design/skills/*
+!/plugins/mtkit-design/skills/design-screen/
+!/plugins/mtkit-design/skills/review-screen/
+!/plugins/mtkit-design/skills/library-docs/

@@ -1,0 +1,26 @@
+{
+  "name": "mtkit-design-catalog",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "catalog:build": "node scripts/build-catalog.mjs",
+    "catalog:serve": "node plugins/mtkit-design/dist/catalog.cjs --http",
+    "catalog:check": "tsc --noEmit",
+    "catalog:inventory": "node packages/catalog/check-inventory.mjs",
+    "catalog:smoke": "node packages/mcp/smoke.mjs",
+    "install:test": "node --test scripts/install.test.mjs",
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "web:preview": "npm --prefix apps/web run preview"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,72 @@
+.wheel-demo { width: min(100%, 244px); }
+.wheel-demo-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 9px;
+  color: var(--catalog-muted);
+  font-size: 13px;
+}
+.wheel-demo-label output { color: var(--catalog-accent); font: 13px var(--catalog-mono); }
+.wheel-picker {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  padding-inline: 9px;
+  border: 1px solid var(--catalog-line);
+  border-radius: 11px;
+  background: var(--catalog-surface);
+  color: var(--catalog-text);
+  user-select: none;
+}
+.wheel-picker::before {
+  position: absolute;
+  z-index: -1;
+  inset-inline: 9px;
+  top: 50%;
+  height: var(--wheel-row);
+  transform: translateY(-50%);
+  border: 1px solid color-mix(in srgb, var(--catalog-accent) 30%, var(--catalog-line));
+  border-radius: 7px;
+  background: var(--catalog-panel);
+  content: "";
+  pointer-events: none;
+}
+.wheel-column { position: relative; height: 174px; border-radius: 7px; cursor: grab; touch-action: none; }
+.wheel-column:active { cursor: grabbing; }
+.wheel-column:focus-visible { outline-offset: -2px; }
+.wheel-separator { padding-inline: 3px; color: var(--catalog-accent); font-size: 17px; }
+.wheel-fade {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 34%, #000 66%, transparent);
+  pointer-events: none;
+}
+.wheel-depth { position: absolute; inset: 0; perspective: 1000px; color: var(--catalog-muted); }
+.wheel-depth[data-band] {
+  clip-path: inset(calc(50% - var(--wheel-row) / 2) 0);
+  color: var(--catalog-text);
+  font-weight: 650;
+}
+.wheel-drum {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  transform: translateZ(calc(-1 * var(--wheel-radius))) rotateX(var(--wheel-rotation, var(--wheel-initial-rotation)));
+  transform-style: preserve-3d;
+}
+.wheel-row {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--wheel-row) / -2);
+  display: grid;
+  height: var(--wheel-row);
+  place-items: center;
+  backface-visibility: hidden;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,38 @@
+trigger: none
+pr: none
+
+parameters:
+  - name: mtkitMcpUrl
+    displayName: Team MCP HTTPS URL
+    type: string
+    default: ''
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '24.x'
+
+  - task: npmAuthenticate@0
+    inputs:
+      workingFile: apps/web/.npmrc
+
+  - script: |
+      set -e
+      npm ci
+      npm run catalog:inventory
+      npm --prefix apps/web ci
+      npm run web:build
+    displayName: Build MTKit Design
+    env:
+      VITE_MTKIT_MCP_URL: ${{ parameters.mtkitMcpUrl }}
+
+  - task: AzureStaticWebApp@0
+    inputs:
+      app_location: apps/web/dist
+      output_location: ''
+      skip_app_build: true
+      skip_api_build: true
+      azure_static_web_apps_api_token: $(staticWebAppDeploymentToken)
