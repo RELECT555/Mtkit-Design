@@ -1,8 +1,8 @@
 import { Button } from "@mtkit/ui";
 import type { ReactNode } from "react";
-import { navigation } from "./navigation";
+import { navigation, type PageId } from "./navigation";
 
-export function Layout({ page, children }: { page: keyof typeof navigation; children: ReactNode }) {
+export function Layout({ page, children }: { page: PageId; children: ReactNode }) {
   return (
     <div className="site-layout">
       <a className="skip-link" href="#main">К содержанию</a>

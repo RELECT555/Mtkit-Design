@@ -1,4 +1,4 @@
-import { navigation } from "../src/app/navigation.ts";
+import { navigation, type PageId } from "../src/app/navigation.ts";
 import { catalogPreview } from "./catalog-preview.ts";
 import { componentsPreview } from "./components-preview.ts";
 import { guidePreview } from "./guide-preview.ts";
@@ -9,9 +9,7 @@ import { shaderPreview } from "./shader-preview.ts";
 const previews = { home: homePreview, catalog: catalogPreview, guide: guidePreview, shaders: shaderPreview, components: componentsPreview, logo: logoPreview };
 
 // The route's first frame is HTML and uses the same styles as the mounted page.
-export function loadingShell(path: string, hasHostedEndpoint: boolean) {
-  const routes = Object.keys(navigation) as Array<keyof typeof navigation>;
-  const page = routes.find((id) => navigation[id].href === path) ?? "home";
+export function loadingShell(page: PageId, hasHostedEndpoint: boolean) {
   const links = Object.entries(navigation).map(([id, { href, label, icon }]) => `<li><a href="${href}"${id === page ? ' aria-current="page"' : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icon}"></path></svg><span>${label}</span></a></li>`).join("");
   return `<div id="page-loading" class="site-layout" data-loading-page="${page}">
     <a class="skip-link" href="#main">К содержанию</a>

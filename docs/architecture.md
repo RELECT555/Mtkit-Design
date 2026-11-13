@@ -12,6 +12,8 @@ MTKit Design ships a static website, a Codex plugin, and an MCP catalog that can
 
 Both the website and MCP depend on the public API of `packages/catalog`. The package generates configuration examples without reading credentials or writing to client configuration files. Keep React, the MCP SDK, and filesystem access in the consumers. Node-specific build scripts can check the source tree. Keep transport checks in the MCP package and Codex writes in the installer.
 
+Each website route has its own static HTML entry for direct visits and browsers without JavaScript. Once React mounts, internal links share one layout and keep the current content visible until the destination module and styles are ready.
+
 Project bootstrap content and client instruction-file mapping live in `packages/catalog/project-rules.json`; `packages/catalog/bootstrap.ts` exposes the pure plan. Both the local setup code and `bootstrap_project` use this shared definition. The MCP tool returns a managed block and merge guidance; it does not write to the caller's filesystem or certify installation. Local writes belong in the installer modules, and remote-only clients apply the plan using their own workspace tools and permissions. Initialization instructions request bootstrap during onboarding, but the MCP protocol does not force a client to execute it.
 
 ## Catalog changes

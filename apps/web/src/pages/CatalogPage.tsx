@@ -1,7 +1,6 @@
 import { Button, Input } from "@mtkit/ui";
 import { catalogCategories, catalogCounts, getEntry, queryCatalog, type EntryAvailability, type EntryKind } from "@mtkit-design/catalog";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Layout } from "../app/Layout";
 import { EntryDialog } from "../features/catalog/EntryDialog";
 import { ToolCard } from "../features/catalog/ToolCard";
 import { CatalogSummary } from "../features/catalog/CatalogSummary";
@@ -129,7 +128,7 @@ export function CatalogPage() {
   }
 
   return (
-    <Layout page="catalog">
+    <>
       <div className="catalog-intro-surface">
         <div className="page-container catalog-intro">
           <div>
@@ -194,6 +193,6 @@ export function CatalogPage() {
         )}
       </section>
       {selection.entry && <EntryDialog key={selection.entry.id} entry={selection.entry} animate={selection.animate} close={() => selectEntry()} />}
-    </Layout>
+    </>
   );
 }

@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { defineConfig, loadEnv } from "vite";
 import { installLoadingStatus, loadingShell } from "./build/loading-shell.ts";
-import { routeTransitionHead } from "./build/route-transitions.ts";
+import { pageForPath, pageTitle } from "./src/app/navigation.ts";
 import { catalogPath, parseHostedEndpoint } from "../../packages/catalog/connection.ts";
 
 export default defineConfig(({ mode }) => {
@@ -25,10 +25,10 @@ export default defineConfig(({ mode }) => {
       transformIndexHtml: {
         order: "pre",
         handler(html, context) {
-          const path = context.path.replace(/index\.html$/, "").replace(/\/?$/, "/");
+          const page = pageForPath(context.path) ?? "home";
           const css = readFileSync(new URL("./src/app/loading-shell.css", import.meta.url), "utf8");
-          return html.replace("</head>", () => `${routeTransitionHead()}<link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/app/site-navigation.css"><style>${css}</style></head>`)
-            .replace('<div id="root"></div>', () => `<div id="root">${loadingShell(path, Boolean(hostedEndpoint))}</div><script>(${installLoadingStatus.toString()})();</script>`);
+          return html.replace("</head>", () => `<title>${pageTitle(page)}</title><link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/app/site-navigation.css"><style>${css}</style></head>`)
+            .replace('<div id="root"></div>', () => `<div id="root">${loadingShell(page, Boolean(hostedEndpoint))}</div><script>(${installLoadingStatus.toString()})();</script>`);
         },
       },
       generateBundle: { order: "post", handler(_, bundle) {

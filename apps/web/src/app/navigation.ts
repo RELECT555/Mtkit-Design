@@ -6,3 +6,17 @@ export const navigation = {
   components: { href: "/shaders/components/", label: "Компоненты", icon: "M8 3l5 5-5 5-5-5z M15 4h5v5h-5z M4 15h5v5H4z M13 13h7v7h-7z" },
   logo: { href: "/logo/", label: "Логотип", icon: "M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3Z M3.5 7.5 12 12l8.5-4.5 M12 12v9" },
 } as const;
+
+export type PageId = keyof typeof navigation;
+
+const pagesByPath = new Map<string, PageId>(
+  (Object.keys(navigation) as PageId[]).map((page) => [navigation[page].href, page]),
+);
+
+export function pageForPath(path: string) {
+  return pagesByPath.get(path.replace(/\/index\.html$/, "/").replace(/\/?$/, "/"));
+}
+
+export function pageTitle(page: PageId) {
+  return page === "home" ? "MTKit Design · Навыки и MCP для фронтенда" : `${navigation[page].label} · MTKit Design`;
+}

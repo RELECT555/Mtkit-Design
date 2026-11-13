@@ -1,31 +1,6 @@
 @media (prefers-reduced-motion: no-preference) {
   :root {
     --motion-out: cubic-bezier(.23, 1, .32, 1);
-    --route-in: 0px;
-  }
-
-  :root[data-route-direction="forward"] { --route-in: 14px; }
-  :root[data-route-direction="back"] { --route-in: -14px; }
-  .site-header { view-transition-name: site-navigation; }
-
-  ::view-transition { background: var(--catalog-canvas); }
-
-  ::view-transition-old(root) {
-    animation: 180ms var(--motion-out) both route-out;
-  }
-
-  ::view-transition-new(root) {
-    animation: 260ms var(--motion-out) both route-in;
-  }
-
-  ::view-transition-group(site-navigation) { animation-duration: 180ms; }
-
-  @keyframes route-out {
-    to { opacity: 0; transform: translateX(calc(var(--route-in) * -.65)); }
-  }
-
-  @keyframes route-in {
-    from { opacity: 0; transform: translateX(var(--route-in)); }
   }
 
   .entry-dialog[open]:is([data-animate], [data-exiting]) {

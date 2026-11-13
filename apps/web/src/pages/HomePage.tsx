@@ -1,9 +1,9 @@
 import { Button, Card } from "@mtkit/ui";
 import { catalogCounts, getEntry } from "@mtkit-design/catalog";
-import { Layout } from "../app/Layout";
 import { ConnectPanel } from "../features/connect/ConnectPanel";
 import { featuredToolIds, heroContent } from "../features/home/content";
 import { McpWorkflow } from "../features/home/McpWorkflow";
+import "./home.css";
 
 const featured = featuredToolIds.flatMap((id) => {
   const entry = getEntry(id);
@@ -12,7 +12,7 @@ const featured = featuredToolIds.flatMap((id) => {
 
 export function HomePage() {
   return (
-    <Layout page="home">
+    <>
       <div className="page-container home-container">
         <section className="hero" aria-labelledby="hero-title">
           <h1 id="hero-title">{heroContent.title[0]}<br />{heroContent.title[1]}<span>.</span></h1>
@@ -58,6 +58,6 @@ export function HomePage() {
       </div>
 
       <ConnectPanel />
-    </Layout>
+    </>
   );
 }

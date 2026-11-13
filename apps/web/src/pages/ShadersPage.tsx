@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
-import { Layout } from "../app/Layout";
 import { ShaderGallery } from "../features/shaders/ShaderGallery";
 import { ShaderStudio } from "../features/shaders/ShaderStudio";
 import { shaderPresets, type ShaderPreset } from "../features/shaders/presets";
+import "../shared/gallery.css";
+import "../features/shaders/shaders.css";
 
 const motionQuery = "(prefers-reduced-motion: reduce)";
 
@@ -79,14 +80,12 @@ export function ShadersPage() {
   }
 
   return (
-    <Layout page="shaders">
-      <div className={`page-container shader-library${selected ? "" : " gallery-container"}`} data-animate-detail={selected && animateDetail ? "" : undefined}>
-        {selected ? (
-          <ShaderStudio key={selected.id} preset={selected} playing={playingOverride ?? !reducedMotion} onPlayingChange={setPlayingOverride} onBack={openGallery} headingRef={detailTitle} />
-        ) : (
-          <ShaderGallery query={query} category={category} onQueryChange={setQuery} onCategoryChange={setCategory} playing={!galleryPaused && !reducedMotion} onTogglePlayback={reducedMotion ? undefined : () => setGalleryPaused((paused) => !paused)} onOpen={openShader} headingRef={galleryTitle} />
-        )}
-      </div>
-    </Layout>
+    <div className={`page-container shader-library${selected ? "" : " gallery-container"}`} data-animate-detail={selected && animateDetail ? "" : undefined}>
+      {selected ? (
+        <ShaderStudio key={selected.id} preset={selected} playing={playingOverride ?? !reducedMotion} onPlayingChange={setPlayingOverride} onBack={openGallery} headingRef={detailTitle} />
+      ) : (
+        <ShaderGallery query={query} category={category} onQueryChange={setQuery} onCategoryChange={setCategory} playing={!galleryPaused && !reducedMotion} onTogglePlayback={reducedMotion ? undefined : () => setGalleryPaused((paused) => !paused)} onOpen={openShader} headingRef={galleryTitle} />
+      )}
+    </div>
   );
 }
