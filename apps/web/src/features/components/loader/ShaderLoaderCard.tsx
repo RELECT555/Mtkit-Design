@@ -4,6 +4,7 @@ import { Loader, type LoaderShape, type LoaderStyle } from "./Loader";
 import { componentDemos, loaderChoices } from "../content";
 
 const { shapes, variants, sizes } = loaderChoices;
+const demo = componentDemos.loader;
 
 export function ShaderLoaderCard() {
   const [shape, setShape] = useState<LoaderShape>("sphere");
@@ -14,8 +15,23 @@ export function ShaderLoaderCard() {
   const [paused, setPaused] = useState(false);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const active = useRef(true);
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+
+  function openDemo() {
+    dialog.current?.showModal();
+    title.current?.focus({ preventScroll: true });
+    setOpen(true);
+  }
+
+  function closeDemo() {
+    setOpen(false);
+    trigger.current?.focus({ preventScroll: true });
+  }
 
   async function exportSource(download: boolean) {
     setBusy(true);
@@ -44,35 +60,56 @@ export function ShaderLoaderCard() {
   }
 
   return (
-    <Card className="component-preview loader-demo" id="shader-loader">
-      <div className="component-preview-stage loader-demo-stage">
-        <Loader shape={shape} variant={variant} size={size} color={color} speed={speed} paused={paused} role="img" aria-label={`Превью: ${shapes[shape]}, ${variants[variant]}`} />
-        <Button type="button" variant="outline" className="loader-playback" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "Пуск" : "Пауза"}</Button>
-      </div>
-      <div className="component-preview-caption">
-        <h2>{componentDemos.loader.title}</h2>
-        <p>{componentDemos.loader.description}</p>
-        <div className="loader-demo-controls">
-          <fieldset><legend>Форма</legend><div className="loader-choice-row">
-            {(Object.keys(shapes) as LoaderShape[]).map(value => <label key={value}><input type="radio" name="loader-shape" value={value} checked={shape === value} onChange={() => setShape(value)} /><span>{shapes[value]}</span></label>)}
-          </div></fieldset>
-          <fieldset><legend>Стиль</legend><div className="loader-choice-row">
-            {(Object.keys(variants) as LoaderStyle[]).map(value => <label key={value}><input type="radio" name="loader-variant" value={value} checked={variant === value} onChange={() => setVariant(value)} /><span>{variants[value]}</span></label>)}
-          </div></fieldset>
-          <fieldset><legend>Размер, px</legend><div className="loader-choice-row">
-            {(Object.keys(sizes) as (keyof typeof sizes)[]).map(value => <label key={value}><input type="radio" name="loader-size" value={value} checked={size === value} onChange={() => setSize(value)} /><span>{sizes[value]}</span></label>)}
-          </div></fieldset>
-          <label className="loader-speed"><span>Скорость <output>{speed.toFixed(2)}×</output></span><input type="range" aria-label="Скорость лоадера" min="0.25" max="2" step="0.05" value={speed} onChange={event => setSpeed(event.target.valueAsNumber)} /></label>
-          <label className="loader-color"><span>Цвет</span><Input type="color" value={color} onChange={event => setColor(event.target.value)} /><code>{color}</code></label>
+    <>
+      <Card className="component-preview" id={demo.id}>
+        <div className="component-preview-stage" aria-hidden="true">
+          <Loader paused />
         </div>
-        <div className="loader-export">
-          <Button type="button" variant="outline" disabled={busy} onClick={() => void exportSource(false)}>Копировать TSX</Button>
-          <Button type="button" variant="ghost" disabled={busy} onClick={() => void exportSource(true)}>Скачать .tsx</Button>
+        <div className="component-preview-caption">
+          <h2>{demo.title}</h2>
+          <p>{demo.description}</p>
+          <Button ref={trigger} type="button" variant="outline" className="loader-open" aria-haspopup="dialog" onClick={openDemo}>{demo.action}</Button>
         </div>
-        <p className="loader-export-hint">Один React-файл и пример с текущими настройками.</p>
-        <p className="loader-feedback" role="status">{status}</p>
-        <a className="inline-link" href="https://ds.asanshay.com/loader" target="_blank" rel="noreferrer">Оригинал от asanshay <span aria-hidden="true">↗</span></a>
-      </div>
-    </Card>
+      </Card>
+      <dialog ref={dialog} className="loader-demo" aria-labelledby="loader-demo-title" aria-describedby="loader-demo-description" onClose={closeDemo}>
+        <header className="loader-demo-header">
+          <div>
+            <h2 id="loader-demo-title" ref={title} tabIndex={-1}>{demo.title}</h2>
+            <p id="loader-demo-description">{demo.description}</p>
+          </div>
+          <Button type="button" variant="ghost" className="loader-close" onClick={() => dialog.current?.close()}>Закрыть</Button>
+        </header>
+        {open && (
+          <div className="loader-demo-body">
+            <div className="loader-demo-stage">
+              <Loader shape={shape} variant={variant} size={size} color={color} speed={speed} paused={paused} role="img" aria-label={`Превью: ${shapes[shape]}, ${variants[variant]}`} />
+              <Button type="button" variant="outline" className="loader-playback" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "Пуск" : "Пауза"}</Button>
+            </div>
+            <div className="loader-demo-settings">
+              <div className="loader-demo-controls">
+                <fieldset><legend>Форма</legend><div className="loader-choice-row">
+                  {(Object.keys(shapes) as LoaderShape[]).map(value => <label key={value}><input type="radio" name="loader-shape" value={value} checked={shape === value} onChange={() => setShape(value)} /><span>{shapes[value]}</span></label>)}
+                </div></fieldset>
+                <fieldset><legend>Стиль</legend><div className="loader-choice-row">
+                  {(Object.keys(variants) as LoaderStyle[]).map(value => <label key={value}><input type="radio" name="loader-variant" value={value} checked={variant === value} onChange={() => setVariant(value)} /><span>{variants[value]}</span></label>)}
+                </div></fieldset>
+                <fieldset><legend>Размер, px</legend><div className="loader-choice-row">
+                  {(Object.keys(sizes) as (keyof typeof sizes)[]).map(value => <label key={value}><input type="radio" name="loader-size" value={value} checked={size === value} onChange={() => setSize(value)} /><span>{sizes[value]}</span></label>)}
+                </div></fieldset>
+                <label className="loader-speed"><span>Скорость <output>{speed.toFixed(2)}×</output></span><input type="range" aria-label="Скорость лоадера" min="0.25" max="2" step="0.05" value={speed} onChange={event => setSpeed(event.target.valueAsNumber)} /></label>
+                <label className="loader-color"><span>Цвет</span><Input type="color" value={color} onChange={event => setColor(event.target.value)} /><code>{color}</code></label>
+              </div>
+              <div className="loader-export">
+                <Button type="button" variant="outline" disabled={busy} onClick={() => void exportSource(false)}>Копировать TSX</Button>
+                <Button type="button" variant="ghost" disabled={busy} onClick={() => void exportSource(true)}>Скачать .tsx</Button>
+              </div>
+              <p className="loader-export-hint">Один React-файл и пример с текущими настройками.</p>
+              <p className="loader-feedback" role="status">{status}</p>
+              <a className="inline-link" href="https://ds.asanshay.com/loader" target="_blank" rel="noreferrer">Оригинал от asanshay <span aria-hidden="true">↗</span></a>
+            </div>
+          </div>
+        )}
+      </dialog>
+    </>
   );
 }

@@ -11,6 +11,12 @@ export const connectModes = [
   { id: "hosted", label: "Командный MCP" },
 ] as const;
 
+export const connectNextStep = {
+  intro: "Откройте новый чат",
+  guidance: "в рабочем проекте. При первом использовании агент подготовит правила MTKit, если запись разрешена. Начните с",
+  guideLabel: "настройки проекта и примеров задач",
+} as const;
+
 export const heroContent = {
   title: ["Навыки и MCP", "для фронтенда"],
   description: "Всё для проектирования, разработки и проверки интерфейсов на React, TypeScript и",

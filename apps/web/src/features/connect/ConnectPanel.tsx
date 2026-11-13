@@ -5,7 +5,7 @@ import { ClientPicker } from "../../shared/ClientPicker";
 import { Command } from "../../shared/Command";
 import { McpConfig } from "../../shared/McpConfig";
 import { codexCommand, hostedEndpoint } from "../../shared/connection";
-import { connectIntro, connectModes } from "../home/content";
+import { connectIntro, connectModes, connectNextStep } from "../home/content";
 
 type Mode = typeof connectModes[number]["id"];
 
@@ -63,7 +63,7 @@ export function ConnectPanel() {
               ) : <McpConfig configuration={catalogConnection(client, mode === "hosted" ? hostedEndpoint : undefined)} />}
             </>
           )}
-          <p>Откройте новый чат {clientLabels[client]} в рабочем проекте. При первом использовании агент подготовит правила MTKit, если запись разрешена. Начните с <a className="inline-link" href="/guide/">настройки проекта и примеров задач</a>.</p>
+          <p>{connectNextStep.intro} {clientLabels[client]} {connectNextStep.guidance} <a className="inline-link" href="/guide/">{connectNextStep.guideLabel}</a>.</p>
         </div>
       </div>
     </section>

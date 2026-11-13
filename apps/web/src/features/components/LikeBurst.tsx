@@ -1,5 +1,6 @@
 import { Button } from "@mtkit/ui";
 import { useEffect, useRef, useState } from "react";
+import { likeHeartPath } from "./content";
 
 type Spring = { position: number; velocity: number; target: number; stiffness: number; damping: number };
 
@@ -102,7 +103,7 @@ export function LikeBurst() {
       <Button ref={button} className="like-burst" type="button" variant="outline" aria-label="Нравится" aria-pressed={liked} onClick={(event) => toggle(event.detail > 0)}>
         <span className="like-burst-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M20.8 5.7a5 5 0 0 0-7.1 0L12 7.4l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21l8.8-8.2a5 5 0 0 0 0-7.1Z" />
+            <path d={likeHeartPath} />
           </svg>
           <span className="like-burst-particles" ref={particles}>
             {dotAngles.map((angle) => <span key={angle} />)}

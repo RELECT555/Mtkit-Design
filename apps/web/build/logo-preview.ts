@@ -12,7 +12,7 @@ export function logoPreview() {
       </div>
       <div class="logo-stage" data-model="logo"><img class="logo-poster" src="/src/features/logo/mtkit-logo-render.png" alt="${logoVariants.logo.label} ${logoIntro.brand}"></div>
       <div class="logo-footer"><code class="logo-filename">${logoVariants.logo.filename}</code>
-        <a class="logo-download" data-slot="button" href="/src/features/logo/mtkit-design-3d.glb" download="${logoVariants.logo.filename}">${previewIcon(logoIcons.download, "", 16)} Скачать GLB</a>
+        <a class="logo-download" data-slot="button" href="/src/features/logo/mtkit-design-3d.glb" data-preview-asset download="${logoVariants.logo.filename}">${previewIcon(logoIcons.download, "", 16)} Скачать GLB</a>
       </div>
     </div>
   </section>`;

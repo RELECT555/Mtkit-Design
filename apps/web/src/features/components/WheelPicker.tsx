@@ -1,15 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { radius, rowAngle, rowHeight, twoDigits, wheelDefaults, wheelRows, wheelRowTransform, wrap } from "./wheel-picker-layout";
 
 // Adapted from Wheel Picker by Dorian Baffier, Kokonut UI. See WHEEL-PICKER-LICENSE.txt.
-const rowHeight = 36;
-const rowAngle = 20;
-const radius = rowHeight / 2 / Math.tan(Math.PI / 18);
-const windowSize = Math.ceil(90 / rowAngle);
 const velocityWindow = 80;
 const motionQuery = "(prefers-reduced-motion: reduce)";
-
-const wrap = (row: number, count: number) => ((row % count) + count) % count;
-const twoDigits = (value: number) => String(value).padStart(2, "0");
 
 function WheelColumn({ label, count, value, onChange }: {
   label: string;
@@ -152,7 +146,7 @@ function WheelColumn({ label, count, value, onChange }: {
     snap(target, 0, true);
   }
 
-  const rows = Array.from({ length: windowSize * 2 + 1 }, (_, index) => center + index - windowSize);
+  const rows = wheelRows(center);
 
   return (
     <div className="wheel-column" role="spinbutton" tabIndex={0} ref={column}
@@ -165,7 +159,7 @@ function WheelColumn({ label, count, value, onChange }: {
           <div className="wheel-depth" data-band={selected || undefined} key={String(selected)}>
             <div className="wheel-drum">
               {rows.map((row) => (
-                <span className="wheel-row" key={row} style={{ transform: `rotateX(${-row * rowAngle}deg) translateZ(${radius}px)` }}>
+                <span className="wheel-row" key={row} style={{ transform: wheelRowTransform(row) }}>
                   {twoDigits(wrap(row, count))}
                 </span>
               ))}
@@ -178,17 +172,17 @@ function WheelColumn({ label, count, value, onChange }: {
 }
 
 export function WheelPicker() {
-  const [hours, setHours] = useState(9);
-  const [minutes, setMinutes] = useState(30);
+  const [hours, setHours] = useState<number>(wheelDefaults.hours);
+  const [minutes, setMinutes] = useState<number>(wheelDefaults.minutes);
   const time = `${twoDigits(hours)}:${twoDigits(minutes)}`;
 
   return (
     <div className="wheel-demo">
       <div className="wheel-demo-label">
-        <span>Время напоминания</span>
+        <span>{wheelDefaults.label}</span>
         <output aria-label="Выбранное время">{time}</output>
       </div>
-      <div className="wheel-picker" role="group" aria-label="Время напоминания" style={{ "--wheel-row": `${rowHeight}px` } as CSSProperties}>
+      <div className="wheel-picker" role="group" aria-label={wheelDefaults.label} style={{ "--wheel-row": `${rowHeight}px` } as CSSProperties}>
         <WheelColumn label="Часы" count={24} value={hours} onChange={setHours} />
         <span className="wheel-separator" aria-hidden="true">:</span>
         <WheelColumn label="Минуты" count={60} value={minutes} onChange={setMinutes} />

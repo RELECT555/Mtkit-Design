@@ -41,28 +41,6 @@ export function installLoadingStatus() {
       if (heading) document.title = `${heading.textContent} · MTKit Design`;
     }
   }
-  const routes = [...shell.querySelectorAll<HTMLAnchorElement>(".site-nav a:not(.site-connect)")].map((link) => new URL(link.href).pathname);
-  // Register before the render snapshot, rather than waiting for React's bundle.
-  window.addEventListener("pageswap", (event) => {
-    void event.viewTransition?.ready.catch(() => {});
-  });
-  window.addEventListener("pagereveal", (event) => {
-    const transition = event.viewTransition;
-    if (!transition) return;
-    // The browser may skip a transition after a navigation or motion change.
-    void transition.ready.catch(() => {});
-    const activation = (window as Window & { navigation?: { activation: NavigationActivation | null } }).navigation?.activation;
-    if (!activation?.from?.url || !activation.entry.url) return;
-    const { from, entry: to } = activation;
-    const start = routes.indexOf(new URL(from.url!).pathname.replace(/\/?$/, "/"));
-    const end = routes.indexOf(new URL(to.url!).pathname.replace(/\/?$/, "/"));
-    const direction = activation.navigationType === "traverse" ? to.index - from.index : end - start;
-    if (start < 0 || end < 0 || direction === 0) return;
-    const root = document.documentElement;
-    root.dataset.routeDirection = direction > 0 ? "forward" : "back";
-    const clearDirection = () => { delete root.dataset.routeDirection; };
-    void transition.finished.then(clearDirection, clearDirection);
-  });
   const controller = new AbortController();
   const revealRetry = () => {
     const retry = shell.querySelector<HTMLElement>(".loading-retry");

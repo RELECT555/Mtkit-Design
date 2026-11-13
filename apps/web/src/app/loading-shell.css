@@ -1,18 +1,10 @@
-.loading-mask {
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--catalog-muted) 16%, var(--catalog-inset));
-  color: transparent;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-  user-select: none;
-}
-
 .loading-retry { margin: 0 0 16px; color: var(--catalog-muted); font-size: 13px; line-height: 1.6; }
 .loading-retry a { display: inline-block; min-height: 44px; padding: 12px 0; color: var(--catalog-accent); text-underline-offset: 4px; }
 
 #page-loading [inert] { cursor: default; }
 #page-loading .shader-preview-loading-start { display: none; }
 #page-loading .loader-preview-placeholder { width: 45px; height: 45px; border: 3px solid #00b3ff; border-right-color: transparent; border-radius: 50%; }
+#page-loading .like-burst { align-items: center; justify-content: center; }
 #page-loading .logo-download { gap: 8px; }
 
 @media (prefers-reduced-motion: reduce) {

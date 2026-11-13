@@ -1,6 +1,7 @@
 import { shaderCategoryIcons, shaderGalleryDescription } from "../src/features/shaders/gallery-content.ts";
 import { shaderPresets, type ShaderPreset } from "../src/features/shaders/presets.ts";
 import { escapeHtml, loadingStatus, previewIcon } from "./preview-markup.ts";
+import { galleryFiltersPreview } from "./gallery-filters-preview.ts";
 
 const categories = [...new Set(shaderPresets.map(({ group }) => group))];
 
@@ -48,19 +49,16 @@ function shaderDetailPreview(preset: ShaderPreset) {
 
 export function shaderPreview() {
   return `<div class="page-container shader-library gallery-container" data-shader-gallery-preview>
-    <div class="shader-gallery">
-      <header class="shader-gallery-heading"><h1 id="shader-gallery-title">Шейдеры</h1><p>${shaderGalleryDescription}</p></header>
-      <aside class="shader-sidebar" aria-labelledby="shader-filter-title" inert>
-        <div class="shader-filter-heading"><h2 id="shader-filter-title">${previewIcon("M4 7h9m4 0h3M4 17h3m4 0h9M13 4v6M7 14v6")}Фильтры</h2><button type="button" class="shader-filter-reset" disabled>Сбросить</button></div>
-        <div class="shader-search">${previewIcon("M16 16l4 4M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0", "shader-search-icon")}<input type="search" placeholder="Поиск шейдеров"></div>
-        <div class="shader-category"><h3>Категории</h3><div class="shader-category-options">
-          ${(["", ...categories] as const).map((category) => `<button type="button" aria-pressed="${!category}">${previewIcon(shaderCategoryIcons[category], "shader-category-icon")}<span class="shader-category-label">${category || "Все шейдеры"}</span><span class="shader-category-count">${category ? shaderPresets.filter(({ group }) => group === category).length : shaderPresets.length}</span></button>`).join("")}
-        </div></div>
-      </aside>
-      <section class="shader-gallery-main" aria-labelledby="shader-gallery-title">
+    <div class="gallery-layout">
+      <header class="gallery-heading"><h1 id="shader-gallery-title">Шейдеры</h1><p>${shaderGalleryDescription}</p></header>
+      ${galleryFiltersPreview("shader", "Поиск шейдеров", (["", ...categories] as const).map((category) => ({
+        id: category, label: category || "Все шейдеры", icon: shaderCategoryIcons[category],
+        count: category ? shaderPresets.filter(({ group }) => group === category).length : shaderPresets.length,
+      })))}
+      <section class="gallery-results" aria-labelledby="shader-gallery-title">
         ${loadingStatus("Загружаем превью шейдеров…")}
-        <div class="shader-gallery-toolbar"><p>Компонентов: ${shaderPresets.length}</p><button type="button" class="shader-preview-toggle" inert><span>Ⅱ</span> Пауза превью</button></div>
-        <ul class="shader-grid">${shaderPresets.map(shaderCard).join("")}</ul>
+        <div class="gallery-toolbar"><p>Компонентов: ${shaderPresets.length}</p><button type="button" class="shader-preview-toggle" inert><span>Ⅱ</span> Пауза превью</button></div>
+        <ul class="gallery-grid">${shaderPresets.map(shaderCard).join("")}</ul>
       </section>
     </div>
   </div>${shaderPresets.map(shaderDetailPreview).join("")}`;

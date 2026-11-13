@@ -19,7 +19,10 @@ function previewFocusTarget(active: Element | null) {
   if (active?.matches("main")) return "#main";
   if (active?.matches(".skip-link")) return ".skip-link";
   if (!(active instanceof HTMLAnchorElement)) return;
+  if (active.matches(".tool-detail-link")) {
+    return `.tool-actions button[aria-label="${CSS.escape(active.getAttribute("aria-label") ?? "")}"]`;
+  }
   const section = active.closest("section[id], .hero, .site-header");
-  const scope = section?.id ? `#${CSS.escape(section.id)}` : section?.matches(".hero") ? ".hero" : ".site-header";
+  const scope = section?.id ? `#${CSS.escape(section.id)}` : section?.matches(".hero") ? ".hero" : section?.matches(".site-header") ? ".site-header" : ".site-content";
   return `${scope} a[href="${CSS.escape(active.getAttribute("href") ?? "")}"]`;
 }

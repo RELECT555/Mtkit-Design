@@ -1,6 +1,6 @@
 import { Button, Card } from "@mtkit/ui";
 import { Layout } from "../app/Layout";
-import { guideExamples, guideIntro } from "../features/guide/examples";
+import { guideExamples, guideIntro, guideTroubleshooting } from "../features/guide/examples";
 import { CopyButton } from "../shared/Command";
 
 export function GuidePage() {
@@ -43,12 +43,11 @@ export function GuidePage() {
         </div>
 
         <section id="troubleshooting" className="guide-troubleshooting" aria-labelledby="guide-troubleshooting-title">
-          <h2 id="guide-troubleshooting-title">Если агент не обратился к каталогу</h2>
+          <h2 id="guide-troubleshooting-title">{guideTroubleshooting.title}</h2>
           <ol>
-            <li>Добавьте к задаче «Используй MTKit Design». В истории инструментов ищите ответ <code>recommend_tools</code> с рекомендациями.</li>
-            <li>Если ответа нет, проверьте подключение MCP и откройте новый чат. Попросите каталог показать категории через <code>list_categories</code>.</li>
-            <li>Для командного адреса проверьте доступ через корпоративную сеть или VPN и наличие <code>MTKIT_MCP_TOKEN</code> в окружении клиента.</li>
-            <li>Если каталог отвечает, а навык или браузер недоступен, запросите план подключения. В Codex основной набор доступен через плагин.</li>
+            {guideTroubleshooting.steps.map((step) => (
+              <li key={step[0]}>{step.map((part) => typeof part === "string" ? part : <code key={part.code}>{part.code}</code>)}</li>
+            ))}
           </ol>
         </section>
       </div>

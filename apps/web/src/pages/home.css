@@ -131,6 +131,7 @@
 .connect-panel .switcher { margin-bottom: 15px; }
 .connect-instructions { display: grid; gap: 12px; }
 .connect-instructions p { margin: 0; font-size: 14px; }
+.connect-instructions p .inline-link { display: inline; }
 .connect-instructions p code { overflow-wrap: anywhere; }
 
 @media (max-width: 760px) {

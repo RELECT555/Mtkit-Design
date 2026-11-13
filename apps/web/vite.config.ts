@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { defineConfig, loadEnv } from "vite";
 import { installLoadingStatus, loadingShell } from "./build/loading-shell.ts";
+import { routeTransitionHead } from "./build/route-transitions.ts";
 import { catalogPath, parseHostedEndpoint } from "../../packages/catalog/connection.ts";
 
 export default defineConfig(({ mode }) => {
@@ -26,10 +27,22 @@ export default defineConfig(({ mode }) => {
         handler(html, context) {
           const path = context.path.replace(/index\.html$/, "").replace(/\/?$/, "/");
           const css = readFileSync(new URL("./src/app/loading-shell.css", import.meta.url), "utf8");
-          return html.replace("</head>", `<link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/app/site-navigation.css"><style>${css}</style></head>`)
+          return html.replace("</head>", () => `${routeTransitionHead()}<link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/app/site-navigation.css"><style>${css}</style></head>`)
             .replace('<div id="root"></div>', () => `<div id="root">${loadingShell(path, Boolean(hostedEndpoint))}</div><script>(${installLoadingStatus.toString()})();</script>`);
         },
       },
+      generateBundle: { order: "post", handler(_, bundle) {
+        // The HTML asset pass rewrites image sources but leaves download links alone.
+        const assets = Object.values(bundle).filter((file) => file.type === "asset");
+        for (const file of assets) {
+          if (!file.fileName.endsWith(".html") || typeof file.source !== "string") continue;
+          file.source = file.source.replace(/href="\/src\/([^\"]+)" data-preview-asset/g, (_, source: string) => {
+            const asset = assets.find((item) => item.originalFileNames.includes(`src/${source}`));
+            if (!asset) throw new Error(`Missing preview asset: ${source}`);
+            return `href="/${asset.fileName}"`;
+          });
+        }
+      } },
     }],
     build: {
       rolldownOptions: {

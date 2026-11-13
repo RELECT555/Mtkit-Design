@@ -6,56 +6,8 @@
   --shader-text: var(--catalog-text);
 }
 
-.shader-gallery {
-  display: grid;
-  grid-template-areas: "filters heading" "filters results";
-  grid-template-columns: clamp(232px, 18vw, 260px) minmax(0, 1fr);
-  align-items: start;
-  column-gap: clamp(18px, 2vw, 30px);
-  row-gap: 20px;
-  padding-block: 29px 54px;
-}
-
-.shader-gallery-heading { grid-area: heading; }
-.shader-gallery-heading h1 { color: var(--shader-text); font-size: clamp(40px, 4.7vw, 64px); font-weight: 720; line-height: .99; letter-spacing: -.065em; }
-.shader-gallery-heading p { margin-top: 10px; color: var(--shader-muted); font-size: 15px; line-height: 1.5; }
-.shader-sidebar { grid-area: filters; position: sticky; top: 16px; min-width: 0; padding: 14px; border: 1px solid var(--shader-line); border-radius: 14px; background: var(--catalog-surface); }
-.shader-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.shader-sidebar h2 { display: flex; align-items: center; gap: 9px; color: var(--shader-text); font-size: 15px; font-weight: 650; text-wrap: balance; }
-.shader-sidebar h2 svg { width: 18px; height: 18px; flex: none; color: var(--shader-muted); }
-#main .shader-filter-reset { height: auto; min-height: 44px; padding: 8px 5px; border-radius: 6px; background: transparent; color: var(--shader-accent); font-size: 12px; }
-#main .shader-filter-reset:disabled { color: var(--shader-muted); opacity: .45; }
-#main .shader-filter-reset:not(:disabled):hover { background: var(--catalog-panel); }
-.shader-search { display: flex; align-items: center; gap: 9px; padding-left: 12px; border: 1px solid var(--shader-line); border-radius: 9px; background: var(--catalog-inset); color: var(--shader-muted); }
-.shader-search:hover { border-color: color-mix(in srgb, var(--shader-muted) 55%, var(--shader-line)); }
-.shader-search:focus-within { border-color: var(--shader-accent); outline: 2px solid color-mix(in srgb, var(--shader-accent) 30%, transparent); outline-offset: 2px; }
-.shader-search-icon { width: 17px; height: 17px; flex: none; }
-#main .shader-search input { width: 100%; min-width: 0; height: 46px; padding: 0 8px 0 0; border: 0; border-radius: 0; outline: none; background: transparent; color: var(--shader-text); box-shadow: none; font-size: 13px; }
-.shader-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
-#main .shader-search-clear { flex: none; width: 44px; height: 44px; min-width: 44px; padding: 12px; border-radius: 7px; background: transparent; color: var(--shader-muted); }
-#main .shader-search-clear:hover { background: var(--catalog-panel); color: var(--shader-text); }
-.shader-search-clear svg { width: 17px; height: 17px; }
-.shader-search input::placeholder { color: var(--shader-muted); }
-.shader-category { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--shader-line); }
-.shader-category h3 { margin: 0 0 12px 4px; color: var(--shader-muted); font-size: 12px; font-weight: 500; }
-.shader-category-options { display: grid; gap: 4px; }
-#main .shader-category-options button { position: relative; display: flex; justify-content: start; gap: 11px; width: 100%; min-width: 0; min-height: 48px; height: auto; padding: 10px 11px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--shader-muted); font-size: 14px; font-weight: 500; line-height: 1.25; }
-#main .shader-category-options button:hover { background: var(--catalog-panel); color: var(--shader-text); }
-#main .shader-category-options button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--shader-accent) 28%, var(--shader-line)); background: color-mix(in srgb, var(--shader-accent) 11%, var(--catalog-surface)); color: var(--shader-accent); font-weight: 600; }
-.shader-category-options button[aria-pressed="true"]::before { position: absolute; top: 50%; left: -1px; width: 3px; height: 18px; border-radius: 0 2px 2px 0; background: var(--shader-accent); transform: translateY(-50%); content: ""; }
-#main :is(.shader-category-options button, .shader-filter-reset, .shader-search-clear):focus-visible { outline: 2px solid var(--shader-accent); outline-offset: 2px; box-shadow: none; }
-.shader-category-icon { width: 18px; height: 18px; flex: none; }
-.shader-category-label { min-width: 0; text-align: left; }
-.shader-category-count { display: grid; place-items: center; flex: none; min-width: 27px; height: 25px; margin-left: auto; padding-inline: 6px; border: 1px solid var(--shader-line); border-radius: 6px; background: transparent; color: var(--shader-muted); font: 11px var(--catalog-mono); font-variant-numeric: tabular-nums; }
-.shader-category-options button[aria-pressed="true"] .shader-category-count { border-color: transparent; background: var(--shader-accent); color: var(--catalog-accent-ink); }
-.shader-empty p { color: var(--shader-muted); font-size: 14px; text-wrap: pretty; }
-
-.shader-gallery-main { grid-area: results; min-width: 0; }
-.shader-gallery-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 38px; margin-bottom: 10px; color: var(--shader-muted); font: 12px var(--catalog-mono); }
 #main .shader-preview-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; height: auto; padding: 5px 8px; background: transparent; color: var(--shader-muted); font: 12px var(--catalog-mono); }
 #main .shader-preview-toggle:hover { color: var(--shader-accent); }
-.shader-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: clamp(14px, 1.6vw, 22px); padding: 0; margin: 0; list-style: none; }
-.shader-grid li { min-width: 0; }
 #main .shader-card { position: relative; display: block; min-width: 0; padding: 0; border: 1px solid var(--shader-line); border-radius: 11px; background: var(--catalog-surface); box-shadow: none; }
 .shader-card::after { position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 14px 28px -12px #0008, 0 0 22px -9px var(--shader-accent); opacity: 0; pointer-events: none; content: ""; }
 #main .shader-card:has(.shader-card-link:focus-visible) { border-color: var(--shader-accent); }
@@ -89,8 +41,6 @@
   #main .shader-card:has(.shader-card-link:active:not(:focus-visible)) { transform: translateY(-1px); transition-duration: 100ms; }
   .shader-card-link:active:not(:focus-visible) .shader-frame { transform: scale(1.015); transition-duration: 100ms; }
 }
-.shader-empty { display: grid; justify-items: start; gap: 12px; padding: 22px; border: 1px solid var(--shader-line); border-radius: 11px; background: var(--catalog-surface); }
-.shader-empty h2 { color: var(--shader-text); font-size: 16px; }
 
 .shader-studio { min-width: 0; padding: 35px 0 42px; }
 .shader-heading { margin-bottom: 26px; }
@@ -120,11 +70,11 @@
 }
 .shader-fallback { position: absolute; top: 14px; left: 14px; z-index: 2; max-width: calc(100% - 28px); padding: 6px 8px; border: 1px solid var(--shader-line); border-radius: 5px; background: var(--catalog-surface); color: var(--shader-text); font-size: 12px; }
 .shader-preview-tools { position: absolute; z-index: 2; display: flex; flex-wrap: wrap; justify-content: end; right: 11px; bottom: 11px; left: 11px; gap: 5px; }
-#main .shader-preview-tools button, #main .shader-controls-heading button, #main .shader-empty button, #main .shader-code-toolbar button {
+#main .shader-preview-tools button, #main .shader-controls-heading button, #main .shader-code-toolbar button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; height: auto; padding: 5px 10px; border: 1px solid var(--shader-line); border-radius: 6px; background: var(--catalog-inset); color: var(--shader-text); font-size: 12px; font-weight: 620;
 }
 #main .shader-preview-tools button { min-width: 36px; background: color-mix(in srgb, var(--catalog-inset) 91%, transparent); }
-#main .shader-preview-tools button:hover, #main .shader-preview-tools button[aria-pressed="true"], #main .shader-controls-heading button:enabled:hover, #main .shader-empty button:hover { border-color: var(--shader-accent); }
+#main .shader-preview-tools button:hover, #main .shader-preview-tools button[aria-pressed="true"], #main .shader-controls-heading button:enabled:hover { border-color: var(--shader-accent); }
 .shader-content-demo { position: absolute; z-index: 1; inset: 0; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 15px 16px 47px; background: #100b1766; color: #fff7f7; text-align: center; pointer-events: none; }
 .shader-content-demo p { font: 12px var(--catalog-mono); }
 .shader-content-demo strong { font-size: clamp(29px, 5vw, 65px); line-height: 1; letter-spacing: -.06em; }
@@ -172,30 +122,11 @@
 .shader-feedback { margin-top: 10px; color: var(--shader-accent); font-size: 13px; }
 .shader-feedback:empty { margin-top: 0; }
 
-@media (max-width: 960px) {
-  .shader-gallery { grid-template-areas: "heading" "filters" "results"; grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .shader-sidebar { position: static; padding: 14px; }
-  .shader-category-options { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
-}
-
 @media (max-width: 740px) {
-  .shader-gallery { padding-block: 24px 34px; }
-  .shader-category { margin-top: 14px; padding-top: 14px; }
-  .shader-category-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #main .shader-category-options button { gap: 6px; min-height: 44px; font-size: 13px; padding: 8px 7px; }
-  .shader-category-icon { width: 16px; height: 16px; }
-  .shader-category-count { min-width: 16px; height: auto; padding: 0; border: 0; background: transparent; }
-  .shader-category-options button[aria-pressed="true"] .shader-category-count { background: transparent; color: var(--shader-accent); }
-  #main .shader-search input { font-size: 16px; }
-  #main .shader-category-options button:first-child { grid-column: 1 / -1; }
   .shader-studio { padding: 21px 0 28px; }
   .shader-heading { margin-bottom: 17px; }
   .shader-preview { min-height: 235px; }
   .shader-settings { gap: 13px; }
-}
-
-@media (max-width: 359px) {
-  .shader-category-options { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 460px) {

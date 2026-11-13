@@ -1,39 +1,52 @@
-import { componentDemos, loaderChoices } from "../src/features/components/content.ts";
+import { componentCategories, componentDemos, componentGalleryDescription, likeHeartPath } from "../src/features/components/content.ts";
+import { radius, rowAngle, rowHeight, twoDigits, wheelDefaults, wheelRows, wheelRowTransform, wrap } from "../src/features/components/wheel-picker-layout.ts";
+import { galleryFiltersPreview } from "./gallery-filters-preview.ts";
 import { loadingStatus } from "./preview-markup.ts";
 
-function choices(legend: string, options: Record<string, string>, selected: string) {
-  return `<fieldset><legend>${legend}</legend><div class="loader-choice-row">${Object.entries(options).map(([value, label]) => `<label><input type="radio"${value === selected ? " checked" : ""}><span>${label}</span></label>`).join("")}</div></fieldset>`;
+function wheelColumn(center: number, count: number) {
+  const rows = wheelRows(center).map((row) => `<span class="wheel-row" style="transform:${wheelRowTransform(row)}">${twoDigits(wrap(row, count))}</span>`).join("");
+  return `<div class="wheel-column" style="--wheel-radius:${radius}px;--wheel-initial-rotation:${center * rowAngle}deg">
+    <div class="wheel-fade"><div class="wheel-depth"><div class="wheel-drum">${rows}</div></div>
+    <div class="wheel-depth" data-band="true"><div class="wheel-drum">${rows}</div></div></div>
+  </div>`;
 }
 
 export function componentsPreview() {
   const { loader, like, wheel } = componentDemos;
-  return `<section class="page-container gallery-container component-library" aria-labelledby="component-library-title">
-    <h1 id="component-library-title">Компоненты</h1>
+  const { hours, minutes, label } = wheelDefaults;
+  const demos = Object.values(componentDemos);
+  return `<div class="page-container gallery-container"><div class="gallery-layout">
+    <header class="gallery-heading"><h1 id="component-library-title">Компоненты</h1><p>${componentGalleryDescription}</p></header>
+    ${galleryFiltersPreview("component", "Поиск компонентов", componentCategories(demos))}
+    <section class="gallery-results" aria-labelledby="component-library-title">
     ${loadingStatus("Загружаем интерактивные примеры…")}
-    <div class="component-preview-grid">
-      <div class="component-preview loader-demo" id="shader-loader">
-        <div class="component-preview-stage loader-demo-stage" inert><div class="loader-preview-placeholder"></div><button class="loader-playback" type="button">Пауза</button></div>
+    <div class="gallery-toolbar"><p>Компонентов: ${demos.length}</p></div>
+    <ul class="gallery-grid">
+      <li><div class="component-preview" id="${loader.id}">
+        <div class="component-preview-stage" aria-hidden="true"><div class="loader-preview-placeholder"></div></div>
         <div class="component-preview-caption"><h2>${loader.title}</h2><p>${loader.description}</p>
-          <div class="loader-demo-controls" inert>
-            ${choices("Форма", loaderChoices.shapes, "sphere")}
-            ${choices("Стиль", loaderChoices.variants, "dither")}
-            ${choices("Размер, px", loaderChoices.sizes, "default")}
-            <label class="loader-speed"><span>Скорость <output>1.00×</output></span><input type="range" value="1" min="0.25" max="2" step="0.05"></label>
-            <label class="loader-color"><span>Цвет</span><input type="color" value="#00b3ff"><code>#00b3ff</code></label>
-          </div>
-          <div class="loader-export" inert><button type="button">Копировать TSX</button><button type="button">Скачать .tsx</button></div>
-          <p class="loader-export-hint">Один React-файл и пример с текущими настройками.</p><p class="loader-feedback"></p>
-          <a class="inline-link" href="https://ds.asanshay.com/loader" target="_blank" rel="noreferrer">Оригинал от asanshay <span aria-hidden="true">↗</span></a>
+          <button class="loader-open" type="button" aria-haspopup="dialog" disabled>${loader.action}</button>
         </div>
-      </div>
-      <div class="component-preview">
-        <div class="component-preview-stage" inert><button class="like-burst" type="button"><span class="like-burst-icon"><span class="loading-mask">♡</span></span><span class="loading-mask">0</span></button></div>
+      </div></li>
+      <li><div class="component-preview" id="${like.id}">
+        <div class="component-preview-stage" inert>
+          <button class="like-burst" type="button" aria-label="Нравится" aria-pressed="false">
+            <span class="like-burst-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="${likeHeartPath}"></path></svg></span>
+            <span class="like-burst-count" aria-hidden="true"><span><span>0</span></span></span>
+          </button>
+        </div>
         <div class="component-preview-caption"><h2>${like.title}</h2><p>${like.description}</p></div>
-      </div>
-      <div class="component-preview">
-        <div class="component-preview-stage" inert><div class="wheel-demo"><div class="wheel-demo-label"><span class="loading-mask">Выберите время</span><output class="loading-mask">09:41</output></div><div class="wheel-picker"><div class="wheel-column"></div><span class="wheel-separator">:</span><div class="wheel-column"></div></div></div></div>
-        <div class="component-preview-caption"><h2>${wheel.title}</h2><p>${wheel.description}</p><a class="inline-link" href="/src/features/components/WHEEL-PICKER-LICENSE.txt">Лицензия MIT</a></div>
-      </div>
-    </div>
-  </section>`;
+      </div></li>
+      <li><div class="component-preview" id="${wheel.id}">
+        <div class="component-preview-stage" inert><div class="wheel-demo">
+          <div class="wheel-demo-label"><span>${label}</span><output>${twoDigits(hours)}:${twoDigits(minutes)}</output></div>
+          <div class="wheel-picker" style="--wheel-row:${rowHeight}px">
+            ${wheelColumn(hours, 24)}<span class="wheel-separator" aria-hidden="true">:</span>${wheelColumn(minutes, 60)}
+          </div>
+        </div></div>
+        <div class="component-preview-caption"><h2>${wheel.title}</h2><p>${wheel.description}</p><a class="inline-link" href="/src/features/components/WHEEL-PICKER-LICENSE.txt" data-preview-asset>Лицензия MIT</a></div>
+      </div></li>
+    </ul>
+    </section>
+  </div></div>`;
 }
