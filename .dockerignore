@@ -9,6 +9,15 @@
 !packages/mcp/**
 !scripts/
 !scripts/build-catalog.mjs
+!plugins/
+!plugins/mtkit-design/
+!plugins/mtkit-design/skills/
+!plugins/mtkit-design/skills/design-screen/
+!plugins/mtkit-design/skills/design-screen/**
+!plugins/mtkit-design/skills/review-screen/
+!plugins/mtkit-design/skills/review-screen/**
+!plugins/mtkit-design/skills/library-docs/
+!plugins/mtkit-design/skills/library-docs/**
 **/node_modules/
 **/dist/
 **/.npmrc

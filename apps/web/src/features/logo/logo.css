@@ -39,6 +39,10 @@
 .logo-view-controls { display: flex; gap: 4px; }
 
 .logo-viewer :is(button, a[data-slot="button"]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 44px;
   height: auto;
   padding-inline: 10px;
@@ -48,6 +52,7 @@
   font-weight: 650;
   text-decoration: none;
 }
+.logo-viewer :is(button, a[data-slot="button"]) svg { width: 16px; height: 16px; flex: none; }
 
 .logo-viewer :is(button, a[data-slot="button"]):focus-visible {
   outline: 2px solid var(--catalog-accent);

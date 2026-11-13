@@ -8,6 +8,7 @@ await build({
   platform: "node",
   target: "node22",
   format: "cjs",
+  loader: { ".md": "text" },
   outfile: "plugins/mtkit-design/dist/catalog.cjs",
   legalComments: "linked",
 });

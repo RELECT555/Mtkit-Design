@@ -5,14 +5,9 @@ import { ClientPicker } from "../../shared/ClientPicker";
 import { Command } from "../../shared/Command";
 import { McpConfig } from "../../shared/McpConfig";
 import { codexCommand, hostedEndpoint } from "../../shared/connection";
-import { connectIntro } from "../home/content";
+import { connectIntro, connectModes } from "../home/content";
 
-const modes = [
-  { id: "plugin", label: "Плагин Codex" },
-  { id: "local", label: "Локальный MCP" },
-  { id: "hosted", label: "Командный MCP" },
-] as const;
-type Mode = typeof modes[number]["id"];
+type Mode = typeof connectModes[number]["id"];
 
 const pluginPlan = planInstall("mtkit-catalog");
 const localCommands = startLocalCatalog.map(({ command, args }) => [command, ...args].join(" ")).join("\n");
@@ -21,7 +16,7 @@ const pluginCommands = pluginPlan?.steps.map(({ command, args }) => [command, ..
 export function ConnectPanel() {
   const [client, setClient] = useState<InstallClient>("codex");
   const [mode, setMode] = useState<Mode>("plugin");
-  const options = modes.filter(({ id }) => (id !== "plugin" || client === "codex") && (id !== "hosted" || hostedEndpoint));
+  const options = connectModes.filter(({ id }) => (id !== "plugin" || client === "codex") && (id !== "hosted" || hostedEndpoint));
 
   function changeClient(next: InstallClient) {
     setClient(next);
@@ -68,7 +63,7 @@ export function ConnectPanel() {
               ) : <McpConfig configuration={catalogConnection(client, mode === "hosted" ? hostedEndpoint : undefined)} />}
             </>
           )}
-          <p>Откройте новый чат {clientLabels[client]} и попробуйте <a className="inline-link" href="/guide/">готовые промпты для MTKit Design</a>.</p>
+          <p>Откройте новый чат {clientLabels[client]} в рабочем проекте. При первом использовании агент подготовит правила MTKit, если запись разрешена. Начните с <a className="inline-link" href="/guide/">настройки проекта и примеров задач</a>.</p>
         </div>
       </div>
     </section>

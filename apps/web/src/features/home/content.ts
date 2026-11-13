@@ -5,6 +5,12 @@ export const connectIntro = {
   description: "MTKit Catalog подбирает навыки и MCP по описанию задачи. В Codex весь набор можно поставить одним плагином. Для остальных агентов инструкции по установке есть в каждой карточке.",
 } as const;
 
+export const connectModes = [
+  { id: "plugin", label: "Плагин Codex" },
+  { id: "local", label: "Локальный MCP" },
+  { id: "hosted", label: "Командный MCP" },
+] as const;
+
 export const heroContent = {
   title: ["Навыки и MCP", "для фронтенда"],
   description: "Всё для проектирования, разработки и проверки интерфейсов на React, TypeScript и",

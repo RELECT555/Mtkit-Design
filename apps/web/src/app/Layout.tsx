@@ -1,7 +1,6 @@
 import { Button } from "@mtkit/ui";
 import type { ReactNode } from "react";
 import { navigation } from "./navigation";
-import "./site-navigation.css";
 
 export function Layout({ page, children }: { page: keyof typeof navigation; children: ReactNode }) {
   return (

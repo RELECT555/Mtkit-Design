@@ -1,6 +1,5 @@
 import { Button } from "@mtkit/ui";
 import { useEffect, useRef, useState } from "react";
-import "./like-burst.css";
 
 type Spring = { position: number; velocity: number; target: number; stiffness: number; damping: number };
 

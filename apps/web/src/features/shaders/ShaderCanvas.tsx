@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Skeleton } from "@mtkit/ui";
 import { createShaderRenderer, type ShaderRendererOptions } from "./webgl";
 import type { ImageTextureStatus } from "./imageTexture";
 import { scheduleShaderInitialization } from "./initializationQueue";
@@ -80,10 +79,7 @@ export function ShaderCanvas({ fragment, colors, speed, intensity, playing, thum
       style={{ "--shader-primary": primary, "--shader-secondary": secondary } as CSSProperties}
     >
       <canvas ref={canvas} aria-hidden="true" />
-      {loading && <div className="shader-loading" role={thumbnail ? undefined : "status"}>
-        <Skeleton className="shader-loading-surface" aria-hidden="true" />
-        <span className="shader-loading-label">{imageStatus === "loading" ? "Загружаем изображение" : "Готовим превью"}<span aria-hidden="true">…</span></span>
-      </div>}
+      {loading && !thumbnail && <p className="shader-loading-label" role="status">{imageStatus === "loading" ? "Загружаем изображение…" : "Готовим превью…"}</p>}
       {status === "fallback" && !thumbnail && <p className="shader-fallback" role="status">WebGL недоступен. Показан статичный фон.</p>}
       {options?.image && imageStatus === "error" && !thumbnail && <p className="shader-fallback" role="status">Не удалось загрузить изображение. Выберите другой файл.</p>}
     </div>

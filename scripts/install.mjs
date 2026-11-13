@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { publishSkills, SkillRollbackError, withInstallLock } from "./publish-skills.mjs";
+import { planProjectRules, setupProjectRules } from "./project-rules.mjs";
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -162,12 +163,20 @@ async function publishMarketplace() {
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length > 1 || args.some(arg => arg !== "--prepare-only")) {
-    throw new Error("Usage: node scripts/install.mjs [--prepare-only]");
+  const usage = "Usage: node scripts/install.mjs [--prepare-only | --project <directory>]";
+  let project;
+  let prepareOnly = false;
+  for (let index = 0; index < args.length; index++) {
+    if (args[index] === "--prepare-only" && !prepareOnly) prepareOnly = true;
+    else if (args[index] === "--project" && project === undefined && args[index + 1] && !args[index + 1].startsWith("--")) project = args[++index];
+    else throw new Error(usage);
   }
+  if (prepareOnly && project !== undefined) throw new Error(usage);
+  // Validate the target before downloads or client registration make changes.
+  if (project !== undefined) await planProjectRules({ project, client: "codex" });
   await withInstallLock(lock, async () => {
     await prepareSkills();
-    if (args.includes("--prepare-only")) return;
+    if (prepareOnly) return;
     for (const script of ["packages/catalog/check-inventory.mjs", "scripts/build-catalog.mjs"]) {
       const { stdout } = await exec(process.execPath, [join(root, script)], { cwd: root, timeout: 120_000 });
       if (stdout.trim()) console.log(stdout.trim());
@@ -177,6 +186,9 @@ async function main() {
     for (const command of [["plugin", "marketplace", "add", "."], ["plugin", "add", "mtkit-design@medipal"]]) {
       const { stdout } = await exec("codex", command, { cwd: root, timeout: 120_000 });
       if (stdout.trim()) console.log(stdout.trim());
+    }
+    if (project !== undefined) {
+      console.log(JSON.stringify(await setupProjectRules({ project, client: "codex" }), null, 2));
     }
   });
 }

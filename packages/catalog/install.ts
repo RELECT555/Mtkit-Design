@@ -55,12 +55,18 @@ function projectPlan(entry: CatalogEntry, client: ProjectClient): InstallPlan | 
   const base = { entryId: entry.id, client, scope: "project" as const, availability: entry.availability };
   const label = clientLabels[client];
   if (entry.kind === "skill") {
+    const copySkill = (name: string) => ({
+      from: `plugins/mtkit-design/skills/${name}/`,
+      to: `${skillDirectories[client]}/${name}/`,
+    });
+    const companions = entry.id === "design-screen" ? ["library-docs", "review-screen"] : [];
     return {
       ...base,
       steps: entry.sourcePath ? [] : [{ command: "node", args: ["scripts/install.mjs", "--prepare-only"], cwd: checkout }],
-      copySkill: { from: `plugins/mtkit-design/skills/${entry.name}/`, to: `${skillDirectories[client]}/${entry.name}/` },
+      copySkill: copySkill(entry.name),
+      ...(companions.length && { companionSkills: companions.map(copySkill) }),
       prerequisites: ["Локальная копия MTKit Design", ...(!entry.sourcePath ? ["Node.js 22.12+ и tar для подготовки навыков"] : []), ...entry.prerequisites],
-      verification: `Откройте новый чат ${label} в проекте и проверьте, что агент видит навык ${entry.name}.`,
+      verification: `Откройте новый чат ${label} в проекте и проверьте, что агент видит ${companions.length ? "навыки" : "навык"} ${[entry.name, ...companions].join(", ")}.`,
     };
   }
   const isCatalog = entry.id === "mtkit-catalog";

@@ -80,6 +80,9 @@ export function EntryDialog({ entry, animate, close }: { entry: CatalogEntry; an
               {plan.client === "codex" && plan.bundledSteps && <p>Плагин Codex уже подключает этот сервер. Команды ниже подходят для отдельной установки.</p>}
               {plan.steps.length > 0 && <InstallSteps steps={plan.steps} />}
               {"copySkill" in plan && <p>Скопируйте папку <code>{plan.copySkill.from}</code> из MTKit Design в <code>{plan.copySkill.to}</code> в рабочем проекте. Перенесите всю папку вместе с файлами навыка.</p>}
+              {"copySkill" in plan && plan.companionSkills?.map((skill) => (
+                <p key={skill.to}>Для связанных инструкций также скопируйте <code>{skill.from}</code> в <code>{skill.to}</code>.</p>
+              ))}
               {"configuration" in plan && <McpConfig configuration={plan.configuration} />}
               <p>{plan.verification}</p>
             </div>

@@ -114,13 +114,8 @@
 .shader-frame, .shader-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .shader-frame { background: radial-gradient(ellipse at 33% 39%, color-mix(in srgb, var(--shader-primary) 31%, transparent), transparent 54%), radial-gradient(ellipse at 72% 61%, color-mix(in srgb, var(--shader-secondary) 34%, var(--catalog-inset)), var(--catalog-inset) 73%); }
 .shader-frame:not([data-renderer="ready"]) canvas { opacity: 0; }
-.shader-loading { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-.shader-loading .shader-loading-surface { position: absolute; inset: 0; overflow: hidden; border-radius: 0; background: color-mix(in srgb, var(--catalog-panel) 88%, transparent); animation: none; }
-.shader-loading-surface::after { position: absolute; inset: 0; content: ""; background: linear-gradient(100deg, transparent 15%, #f4aa8e0d 50%, transparent 85%); transform: translateX(-100%); }
-.shader-loading-label { position: relative; color: var(--catalog-muted); font: 12px var(--catalog-mono); }
+.shader-loading-label { position: absolute; inset: 14px auto auto 14px; padding: 6px 8px; border: 1px solid var(--shader-line); border-radius: 5px; background: var(--catalog-surface); color: var(--catalog-muted); font: 12px var(--catalog-mono); }
 @media (prefers-reduced-motion: no-preference) {
-  .shader-loading-surface::after { animation: shader-loading-sheen 1.8s ease-in-out infinite; }
-  @keyframes shader-loading-sheen { to { transform: translateX(100%); } }
   .shader-frame[data-renderer="ready"] canvas { transition: opacity 150ms var(--motion-out); }
 }
 .shader-fallback { position: absolute; top: 14px; left: 14px; z-index: 2; max-width: calc(100% - 28px); padding: 6px 8px; border: 1px solid var(--shader-line); border-radius: 5px; background: var(--catalog-surface); color: var(--shader-text); font-size: 12px; }
@@ -170,6 +165,7 @@
 #main .shader-code-toolbar button { flex: none; border-color: var(--shader-accent); background: var(--shader-accent); color: var(--catalog-accent-ink); }
 #main .shader-code-toolbar button:hover { filter: brightness(1.1); }
 .shader-source { overflow: auto; max-height: 480px; padding: 16px; margin: 0; border: 1px solid var(--shader-line); border-top: 0; border-radius: 0 0 9px 9px; background: var(--catalog-inset); color: var(--shader-text); font: 12px/1.65 var(--catalog-mono); }
+.shader-source-loading { min-height: 480px; color: var(--shader-muted); }
 .shader-prompt { color: var(--shader-text); font-size: 13px; line-height: 1.72; white-space: pre-wrap; overflow-wrap: anywhere; }
 .shader-code-tip { margin-top: 12px; color: var(--shader-muted); font-size: 13px; line-height: 1.55; }
 .shader-code-tip code { color: var(--shader-text); overflow-wrap: anywhere; }

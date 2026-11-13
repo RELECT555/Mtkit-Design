@@ -238,7 +238,7 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
           ) : sourceState.status === "error" ? (
             <p className="shader-source" role="alert">Не удалось загрузить исходный код.</p>
           ) : (
-            <p className="shader-source" role="status">Загружается исходный код…</p>
+            <p className="shader-source shader-source-loading" role="status">Загружается исходный код…</p>
           )}
         </TabsContent>
         <TabsContent value="prompt" className="shader-tab-content">

@@ -1,0 +1,11 @@
+{
+  "markerStart": "<!-- mtkit-design:start -->",
+  "markerEnd": "<!-- mtkit-design:end -->",
+  "instructionFiles": {
+    "codex": "AGENTS.md",
+    "claude-code": "CLAUDE.md",
+    "cursor": "AGENTS.md",
+    "vscode": ".github/copilot-instructions.md"
+  },
+  "content": "## Frontend workflow with MTKit Design\n\nFor TypeScript/React UI design, implementation, review and public-library API tasks:\n\n1. Before starting, call the connected MTKit Catalog's recommend_tools with a short task summary and relevant constraints. Reuse recommendations already obtained for this task. If no useful match is returned, use search_entries to inspect alternatives.\n2. Read selected installed skills or retrieve them through get_skill. Apply the smallest relevant set. Inspect existing project instructions, components, localization, design tokens and package versions. Use @mtkit/ui for product UI and preserve its installed version and API unless the user authorizes a library change. Never invent component exports or props.\n3. Verify that recommended MCP tools and helper runtimes are actually available. A bundled label describes the plugin's contents, not runtime availability. Use get_entry and plan_install for missing prerequisites, within the user's authorized scope. Do not install every catalog item.\n4. Respect review-only requests and project constraints. For UI changes, verify the rendered interface on desktop and mobile, relevant keyboard flows and loading/error/empty states. Distinguish browser evidence, automated checks and unverified behavior.\n\nIf the catalog is unavailable, state that briefly and continue with relevant installed guidance where possible. Do not claim that a skill was applied without reading it, or that a check passed without executing it. Preserve existing project rules; if they conflict with this workflow, surface the conflict and follow the user's instructions.\n"
+}

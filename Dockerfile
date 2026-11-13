@@ -6,9 +6,12 @@ COPY packages/mcp/package.json packages/mcp/
 RUN npm ci --no-audit --no-fund
 COPY packages/catalog/ packages/catalog/
 COPY packages/mcp/ packages/mcp/
+COPY plugins/mtkit-design/skills/design-screen/ plugins/mtkit-design/skills/design-screen/
+COPY plugins/mtkit-design/skills/review-screen/ plugins/mtkit-design/skills/review-screen/
+COPY plugins/mtkit-design/skills/library-docs/ plugins/mtkit-design/skills/library-docs/
 COPY scripts/build-catalog.mjs scripts/
 COPY tsconfig.json ./
-RUN npm run catalog:check && npm run catalog:build && npm run catalog:smoke
+RUN npm run catalog:check && npm run catalog:test && npm run catalog:build && npm run catalog:smoke
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app

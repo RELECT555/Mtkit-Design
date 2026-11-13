@@ -25,10 +25,9 @@ export default defineConfig(({ mode }) => {
         order: "pre",
         handler(html, context) {
           const path = context.path.replace(/index\.html$/, "").replace(/\/?$/, "/");
-          const css = ["loading-shell.css", "site-navigation.css"]
-            .map((name) => readFileSync(new URL(`./src/app/${name}`, import.meta.url), "utf8")).join("\n");
-          return html.replace("</head>", `<style>${css}</style></head>`)
-            .replace('<div id="root"></div>', `<div id="root">${loadingShell(path)}</div><script>(${installLoadingStatus.toString()})();</script>`);
+          const css = readFileSync(new URL("./src/app/loading-shell.css", import.meta.url), "utf8");
+          return html.replace("</head>", `<link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/app/site-navigation.css"><style>${css}</style></head>`)
+            .replace('<div id="root"></div>', () => `<div id="root">${loadingShell(path, Boolean(hostedEndpoint))}</div><script>(${installLoadingStatus.toString()})();</script>`);
         },
       },
     }],

@@ -6,23 +6,16 @@ import logoUrl from "../features/logo/mtkit-design-3d.glb?url";
 import logoPoster from "../features/logo/mtkit-logo-render.png";
 import badgePoster from "../features/logo/mtkit-badge-render.png";
 import type { createLogoScene } from "../features/logo/logoScene";
+import { logoIcons, logoIntro, logoVariants } from "../features/logo/content";
 
 const models = {
-  logo: { label: "Полный логотип", url: logoUrl, poster: logoPoster, filename: "mtkit-design-3d.glb" },
-  badge: { label: "Знак", url: badgeUrl, poster: badgePoster, filename: "mtkit-badge-3d.glb" },
+  logo: { ...logoVariants.logo, url: logoUrl, poster: logoPoster },
+  badge: { ...logoVariants.badge, url: badgeUrl, poster: badgePoster },
 };
 type Model = keyof typeof models;
 
-const icons = {
-  download: "M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4",
-  model: "m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3ZM4 7.5l8 4.5 8-4.5M12 12v9",
-  minus: "M6 12h12",
-  plus: "M6 12h12M12 6v12",
-  reset: "M4 11a8 8 0 1 1 1.9 6M4 5v6h6",
-} as const;
-
-function LogoIcon({ name }: { name: keyof typeof icons }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[name]} /></svg>;
+function LogoIcon({ name }: { name: keyof typeof logoIcons }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={logoIcons[name]} /></svg>;
 }
 
 export function LogoPage() {
@@ -88,8 +81,8 @@ export function LogoPage() {
     <Layout page="logo">
       <section className="page-container logo-page" aria-labelledby="logo-title">
         <header className="logo-intro">
-          <h1 id="logo-title">Логотип <span>MTKit Design</span></h1>
-          <p>Выберите полный логотип или знак. Обе модели доступны в формате GLB.</p>
+          <h1 id="logo-title">{logoIntro.title} <span>{logoIntro.brand}</span></h1>
+          <p>{logoIntro.description}</p>
         </header>
         <div className="logo-viewer">
           <div className="logo-toolbar">

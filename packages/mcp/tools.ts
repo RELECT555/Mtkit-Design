@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/server";
-import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planInstall, queryCatalog, recommendForTask } from "@mtkit-design/catalog";
+import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planBootstrap, planInstall, queryCatalog, recommendForTask } from "@mtkit-design/catalog";
 import * as z from "zod/v4";
 import { version } from "./package.json";
+import { readSkill } from "./skills.js";
 
 const inventoryUri = "mtkit://catalog/inventory";
 const readOnly = {
@@ -23,6 +24,7 @@ const searchInput = z.strictObject({
 const entryId = z.string().trim().min(1).max(100).describe("Catalog entry ID returned by recommend_tools or search_entries.");
 
 const recommendationOutput = z.object({
+  projectSetup: z.object({ tool: z.literal("bootstrap_project"), instruction: z.string() }),
   recommendations: z.array(z.object({
     id: z.string(),
     kind: z.enum(["skill", "mcp"]),
@@ -50,7 +52,7 @@ function unknownEntry(id: string) {
 export function createCatalogServer() {
   const server = new McpServer(
     { name: "mtkit-catalog", version },
-    { instructions: "For a user task involving TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short description of the task. The user can describe the work in natural language. Use search_entries for direct catalog searches and browse mtkit://catalog/inventory for the complete inventory." },
+    { instructions: "When MTKit is first used in an application project, call bootstrap_project for the current client. It returns the managed project rules and merge procedure. During authorized project setup, use the client's file tools to create or update only that block, preserve existing rules, and verify the result. Never write to the server filesystem as a substitute for client setup. For read-only or review-only work, follow the rules in-session and report setup as not persisted. Reuse a completed setup check for this project during the session. For TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short task description, then read selected installed skills or get_skill before applying them. Verify MCP tools in this client before using them; bundled means included in the plugin, not currently connected. Use plan_install for missing dependencies. Respect the user's constraints and preserve the project's @mtkit/ui version and API. Use search_entries for direct searches and mtkit://catalog/inventory for the complete inventory." },
   );
 
   server.registerResource("inventory", inventoryUri, {
@@ -65,6 +67,19 @@ export function createCatalogServer() {
     }],
   }));
 
+  server.registerTool("bootstrap_project", {
+    title: "Set up MTKit project guidance",
+    description: "Call at first use of MTKit in an application project. Returns the current client's instruction file, managed rule block, non-destructive merge procedure and readiness checks. Use client file tools to apply during authorized setup; preserve existing rules. In review-only/read-only sessions, use guidance in-session without writing. This server only returns a plan and cannot write to the client's files. Reuse a completed setup check within this session.",
+    inputSchema: z.strictObject({ client: z.enum(installClients).describe("The agent client using this project: codex, claude-code, cursor or vscode.") }),
+    outputSchema: z.object({ setup: z.object({
+      client: z.enum(installClients), instructionFile: z.string(),
+      markerStart: z.string(), markerEnd: z.string(), content: z.string(),
+      mergePolicy: z.literal("append-or-replace-managed-block"),
+      instructions: z.array(z.string()), checks: z.array(z.string()),
+    }) }),
+    annotations: readOnly,
+  }, async ({ client }) => jsonResult({ setup: planBootstrap(client) }));
+
   server.registerTool("list_categories", {
     title: "List catalog categories",
     description: "Get the category names used by search_entries and the current inventory counts.",
@@ -74,13 +89,14 @@ export function createCatalogServer() {
 
   server.registerTool("recommend_tools", {
     title: "Recommend skills and MCP servers for a task",
-    description: "Choose relevant skills and MCP servers before working on a TypeScript frontend task. Pass the user's goal in natural language, including the framework or constraints when known. Apply relevant recommendations that are available in this session. Use get_entry for requirements and plan_install if setup is needed. Bundled means included in the MTKit Design plugin.",
+    description: "Choose relevant skills and MCP servers before working on a TypeScript frontend task. Pass the user's goal in natural language, including framework and constraints. Read selected installed skills or get_skill before applying them. Use get_entry for requirements and plan_install if setup is needed. Bundled means included in the plugin, not proof of installation or availability in this session. With no match, search_entries or inspect the inventory instead of guessing.",
     inputSchema: z.strictObject({
       task: z.string().trim().min(1).max(2_000).describe("Short description of what the user wants to accomplish, in Russian or English."),
     }),
     outputSchema: recommendationOutput,
     annotations: readOnly,
   }, async ({ task }) => jsonResult({
+    projectSetup: { tool: "bootstrap_project", instruction: "If MTKit project setup has not yet been checked in this session, request bootstrap_project for your client. Apply only during authorized setup; for read-only or review-only work follow its guidance in-session. Reuse an existing setup check." },
     recommendations: recommendForTask(task).map(({ entry: { id, kind, name, title, availability }, reason }) => ({ id, kind, name, title, availability, reason })),
   }));
 
@@ -106,6 +122,26 @@ export function createCatalogServer() {
   }, async ({ id }) => {
     const entry = getEntry(id);
     return entry ? jsonResult({ entry }) : unknownEntry(id);
+  });
+
+  server.registerTool("get_skill", {
+    title: "Read a skill's instructions",
+    description: "Read SKILL.md or a Markdown reference before applying a selected skill. First-party MTKit instructions are included in the server. External guidance is read from the catalog's pinned GitHub revision and requires network access. This reads guidance only; helper scripts and MCP servers must be installed and used in the client environment.",
+    inputSchema: z.strictObject({
+      id: entryId,
+      path: z.string().trim().min(1).max(240).default("SKILL.md").describe("Markdown path relative to the skill folder, for example references/mtkit.md. For sibling skills use their own catalog entry ID."),
+    }),
+    outputSchema: z.object({ skill: z.object({
+      id: z.string(), path: z.string(), content: z.string(), source: z.string(),
+      revision: z.string().optional(), files: z.array(z.string()).optional(), usage: z.string(),
+    }) }),
+    annotations: { ...readOnly, openWorldHint: true },
+  }, async ({ id, path }) => {
+    try {
+      return jsonResult({ skill: await readSkill(id, path) });
+    } catch (error) {
+      return { isError: true, content: [{ type: "text" as const, text: error instanceof Error ? error.message : "Skill could not be loaded. Use get_entry and plan_install for requirements." }] };
+    }
   });
 
   server.registerTool("plan_install", {

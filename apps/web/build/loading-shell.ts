@@ -1,32 +1,29 @@
 import { navigation } from "../src/app/navigation.ts";
+import { catalogPreview } from "./catalog-preview.ts";
+import { componentsPreview } from "./components-preview.ts";
+import { guidePreview } from "./guide-preview.ts";
 import { homePreview } from "./home-preview.ts";
+import { logoPreview } from "./logo-preview.ts";
+import { shaderPreview } from "./shader-preview.ts";
 
-// Plain HTML is intentional: this view must work before React or the UI kit loads.
-// All inputs are authored constants, never URL/query content.
-export function loadingShell(path: string) {
-  const page = Object.entries(navigation).find(([, route]) => route.href === path)?.[0] ?? "home";
-  const title = navigation[page as keyof typeof navigation].label;
-  const bar = (size = "") => `<div class="loading-block loading-line ${size}"></div>`;
-  const cards = Array.from({ length: 6 }, () => `<div class="loading-card"><div class="loading-block loading-preview"></div><div class="loading-caption">${bar("loading-medium")}${bar("loading-short")}</div></div>`).join("");
-  const filters = `<aside class="loading-filters" aria-hidden="true">${bar("loading-medium")}<div class="loading-block loading-input"></div><div class="loading-options">${Array.from({ length: 5 }, () => bar()).join("")}</div></aside>`;
+const previews = { home: homePreview, catalog: catalogPreview, guide: guidePreview, shaders: shaderPreview, components: componentsPreview, logo: logoPreview };
+
+// The route's first frame is HTML and uses the same styles as the mounted page.
+export function loadingShell(path: string, hasHostedEndpoint: boolean) {
+  const routes = Object.keys(navigation) as Array<keyof typeof navigation>;
+  const page = routes.find((id) => navigation[id].href === path) ?? "home";
   const links = Object.entries(navigation).map(([id, { href, label, icon }]) => `<li><a href="${href}"${id === page ? ' aria-current="page"' : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icon}"></path></svg><span>${label}</span></a></li>`).join("");
-  return `<div id="page-loading" class="page-loading" data-loading-page="${page}">
-    <a class="loading-skip" href="#loading-main">К содержанию</a>
+  return `<div id="page-loading" class="site-layout" data-loading-page="${page}">
+    <a class="skip-link" href="#main">К содержанию</a>
     <header class="site-header"><div class="site-header-inner">
       <a class="wordmark" href="/" aria-label="MTKit Design, главная"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>MTKit <strong>Design</strong></span></a>
       <nav class="site-navigation" aria-label="Основная навигация"><ul class="site-nav">${links}</ul></nav>
       <a class="site-connect" href="/#connect">Подключить <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"></path></svg></a>
     </div></header>
-    ${page === "home" ? `<main id="loading-main" tabindex="-1">${homePreview()}</main>` : `<main id="loading-main" class="loading-main" tabindex="-1">
-      <div class="loading-heading"><h1>${title}</h1><p>${page === "shaders" ? "WebGL-фоны и интерактивные эффекты для React и TypeScript." : "Готовим страницу — скоро всё появится."}</p></div>
-      ${page === "shaders" ? filters : ""}
-      <section class="loading-content" aria-label="Содержимое страницы">
-        <div class="loading-toolbar"><p role="status">Загружаем ${page === "shaders" ? "галерею" : "страницу"}…</p><div aria-hidden="true">${bar()}</div></div>
-        <p class="loading-retry" hidden>Загрузка занимает больше времени, чем обычно. <a href="">Попробовать снова</a></p>
-        <noscript>Для работы страницы включите JavaScript.</noscript>
-        <div class="loading-grid" aria-hidden="true" aria-busy="true">${page === "logo" ? '<div class="loading-block loading-stage"></div>' : cards}</div>
-      </section>
-    </main>`}
+    <div class="site-content">
+      <main id="main" data-page="${page}" tabindex="-1">${previews[page](hasHostedEndpoint)}</main>
+      <footer class="footer"><div class="page-container footer-inner"><span>MTKit Design <span class="footer-divider">/</span> Medipal</span><a href="/catalog/">Открыть каталог <span aria-hidden="true">→</span></a></div></footer>
+    </div>
   </div>`;
 }
 
@@ -34,6 +31,16 @@ export function loadingShell(path: string) {
 export function installLoadingStatus() {
   const shell = document.getElementById("page-loading");
   if (!shell) return;
+  if (shell.dataset.loadingPage === "shaders") {
+    const selected = new URLSearchParams(location.search).get("shader");
+    const detail = [...shell.querySelectorAll<HTMLTemplateElement>("template[data-shader-preview]")].find((template) => template.dataset.shaderPreview === selected);
+    if (detail) {
+      const gallery = shell.querySelector("[data-shader-gallery-preview]");
+      gallery?.replaceWith(detail.content.cloneNode(true));
+      const heading = shell.querySelector("#shader-title");
+      if (heading) document.title = `${heading.textContent} · MTKit Design`;
+    }
+  }
   const routes = [...shell.querySelectorAll<HTMLAnchorElement>(".site-nav a:not(.site-connect)")].map((link) => new URL(link.href).pathname);
   // Register before the render snapshot, rather than waiting for React's bundle.
   window.addEventListener("pageswap", (event) => {

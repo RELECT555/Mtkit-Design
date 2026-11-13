@@ -1,11 +1,9 @@
 import { Button, Card, Input } from "@mtkit/ui";
 import { useEffect, useRef, useState } from "react";
 import { Loader, type LoaderShape, type LoaderStyle } from "./Loader";
-import "./loader-demo.css";
+import { componentDemos, loaderChoices } from "../content";
 
-const shapes = { sphere: "Сфера", swirl: "Вихрь", ripple: "Рябь" } as const;
-const variants = { plain: "Чёткий", blur: "Мягкий", dither: "Пиксельный" } as const;
-const sizes = { sm: "48", default: "80", lg: "120" } as const;
+const { shapes, variants, sizes } = loaderChoices;
 
 export function ShaderLoaderCard() {
   const [shape, setShape] = useState<LoaderShape>("sphere");
@@ -52,8 +50,8 @@ export function ShaderLoaderCard() {
         <Button type="button" variant="outline" className="loader-playback" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "Пуск" : "Пауза"}</Button>
       </div>
       <div className="component-preview-caption">
-        <h2>Shader Loader</h2>
-        <p>Индикатор загрузки: три формы и три способа отрисовки.</p>
+        <h2>{componentDemos.loader.title}</h2>
+        <p>{componentDemos.loader.description}</p>
         <div className="loader-demo-controls">
           <fieldset><legend>Форма</legend><div className="loader-choice-row">
             {(Object.keys(shapes) as LoaderShape[]).map(value => <label key={value}><input type="radio" name="loader-shape" value={value} checked={shape === value} onChange={() => setShape(value)} /><span>{shapes[value]}</span></label>)}

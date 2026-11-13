@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { once } from "node:events";
+import { copyFile, mkdtemp, readdir, realpath, rm } from "node:fs/promises";
 import { request } from "node:http";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
@@ -21,9 +24,59 @@ const { catalogCategories, catalogCounts, catalogEntries } = await import(
   `data:text/javascript;base64,${Buffer.from(catalog.outputFiles[0].contents).toString("base64")}`
 );
 
+// Fail closed before accepting connections, including when the parent environment
+// happens to contain valid deployment credentials.
+for (const [args, overrides, expected] of [
+  [["--unsupported"], {}, /Usage:/],
+  [["--http", "--port", "65536"], {}, /Usage:/],
+  [["--hosted"], {}, /MTKIT_PUBLIC_URL/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "http://mcp.example/mcp" }, /MTKIT_PUBLIC_URL/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp/" }, /MTKIT_PUBLIC_URL/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp" }, /MTKIT_MCP_TOKEN/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp", MTKIT_MCP_TOKEN: "short" }, /MTKIT_MCP_TOKEN/],
+  [["--hosted"], { PORT: "65536" }, /PORT/],
+]) {
+  const result = spawnSync(process.execPath, [executable, ...args], {
+    env: { ...process.env, MTKIT_PUBLIC_URL: "", MTKIT_MCP_TOKEN: "", PORT: "0", ...overrides },
+    encoding: "utf8",
+    timeout: 5_000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 1, `Invalid configuration must stop startup: ${JSON.stringify(args)}`);
+  assert.match(result.stderr, expected);
+  assert.equal(result.stdout, "", "Startup diagnostics must not corrupt stdio MCP output");
+}
+console.log("Startup: invalid CLI, endpoint, token, and port fail closed");
+
 async function checkCatalog(client) {
+  assert.match(client.getInstructions() ?? "", /recommend_tools/);
+  assert.match(client.getInstructions() ?? "", /get_skill/);
+  assert.match(client.getInstructions() ?? "", /bootstrap_project/);
+  assert(client.getServerCapabilities()?.tools);
+  assert(client.getServerCapabilities()?.resources);
   const listing = await client.listTools();
-  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["get_entry", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
+  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "get_entry", "get_skill", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
+  const bootstrapTool = listing.tools.find(({ name }) => name === "bootstrap_project");
+  assert.equal(bootstrapTool.annotations?.readOnlyHint, true, "Remote bootstrap returns a client-side plan rather than writing project files");
+  assert.equal(bootstrapTool.annotations?.destructiveHint, false);
+
+  for (const [target, instructionFile] of [
+    ["codex", "AGENTS.md"], ["claude-code", "CLAUDE.md"], ["cursor", "AGENTS.md"], ["vscode", ".github/copilot-instructions.md"],
+  ]) {
+    const response = await client.callTool({ name: "bootstrap_project", arguments: { client: target } });
+    assert(!response.isError);
+    const { setup: plan } = response.structuredContent;
+    assert.equal(plan.client, target);
+    assert.equal(plan.instructionFile, instructionFile);
+    assert.match(plan.content, /recommend_tools/);
+    assert.match(plan.content, /get_skill/);
+    assert.match(plan.content, /@mtkit\/ui/);
+    assert(plan.markerStart && plan.markerEnd && plan.markerStart !== plan.markerEnd);
+    const repeat = await client.callTool({ name: "bootstrap_project", arguments: { client: target } });
+    assert.deepEqual(repeat.structuredContent, response.structuredContent, "Bootstrap plan must remain stable across repeated connections");
+  }
+  const invalidBootstrap = await client.callTool({ name: "bootstrap_project", arguments: { client: "unsupported" } });
+  assert.equal(invalidBootstrap.isError, true);
 
   const uri = "mtkit://catalog/inventory";
   const listed = await client.listResources();
@@ -45,6 +98,7 @@ async function checkCatalog(client) {
   const recommend = async (task) => {
     const result = await client.callTool({ name: "recommend_tools", arguments: { task } });
     assert(!result.isError);
+    assert.equal(result.structuredContent.projectSetup.tool, "bootstrap_project");
     const { recommendations } = result.structuredContent;
     assert.equal(new Set(recommendations.map(({ id }) => id)).size, recommendations.length);
     for (const { id, name, kind, reason } of recommendations) {
@@ -69,6 +123,22 @@ async function checkCatalog(client) {
   const details = await client.callTool({ name: "get_entry", arguments: { id: "context7" } });
   assert.equal(details.structuredContent.entry.id, "context7");
   assert(details.structuredContent.entry.sourceUrl);
+
+  const skill = await client.callTool({ name: "get_skill", arguments: { id: "design-screen" } });
+  assert(!skill.isError);
+  assert.match(skill.content.filter(({ type }) => type === "text").map(({ text }) => text).join("\n"), /@mtkit\/ui/);
+  const reference = await client.callTool({ name: "get_skill", arguments: { id: "design-screen", path: "references/mtkit.md" } });
+  assert(!reference.isError);
+  assert.match(reference.content.filter(({ type }) => type === "text").map(({ text }) => text).join("\n"), /pkgs\.dev\.azure\.com/);
+  for (const arguments_ of [
+    { id: "context7" },
+    { id: "no-such-catalog-entry" },
+    { id: "design-screen", path: "../../.env" },
+    { id: "design-screen", path: "references/missing.md" },
+  ]) {
+    const result = await client.callTool({ name: "get_skill", arguments: arguments_ });
+    assert.equal(result.isError, true, `Invalid skill request must fail: ${JSON.stringify(arguments_)}`);
+  }
 
   const plan = await client.callTool({ name: "plan_install", arguments: { id: "context7" } });
   assert.equal(plan.structuredContent.plan.client, "codex");
@@ -97,6 +167,10 @@ async function checkCatalog(client) {
     const localSkill = await getPlan("design-screen", target);
     assert.deepEqual(localSkill.steps, []);
     assert.equal(localSkill.copySkill.to, `${skillDir}/design-screen/`);
+    assert.deepEqual(localSkill.companionSkills, [
+      { from: "plugins/mtkit-design/skills/library-docs/", to: `${skillDir}/library-docs/` },
+      { from: "plugins/mtkit-design/skills/review-screen/", to: `${skillDir}/review-screen/` },
+    ]);
     const externalSkill = await getPlan("accessibility", target);
     assert.deepEqual(externalSkill.steps[0].args, ["scripts/install.mjs", "--prepare-only"]);
     assert.equal(externalSkill.copySkill.to, `${skillDir}/accessibility/`);
@@ -140,12 +214,22 @@ async function checkCatalog(client) {
 }
 
 const stdioClient = new Client({ name: "mtkit-stdio-smoke", version: "1.0.0" });
+const temporaryRoot = await realpath(tmpdir());
+const standalone = await mkdtemp(join(temporaryRoot, "mtkit-standalone-smoke-"));
 try {
-  await stdioClient.connect(new StdioClientTransport({ command: process.execPath, args: [executable], stderr: "inherit" }));
+  const standaloneExecutable = join(standalone, "catalog.cjs");
+  await copyFile(executable, standaloneExecutable);
+  await stdioClient.connect(new StdioClientTransport({ command: process.execPath, args: [standaloneExecutable], cwd: standalone, stderr: "inherit" }));
   await checkCatalog(stdioClient);
-  console.log("stdio: inventory parity, task recommendations, search, pagination, details, plan, and validation passed");
+  assert.deepEqual(await readdir(standalone), ["catalog.cjs"], "Bootstrap must not create project rules on the server filesystem");
+  console.log("Standalone stdio: bootstrap without server writes, initialization guidance, inventory, recommendations, skill references, install plans, and validation passed");
 } finally {
-  await stdioClient.close();
+  try {
+    await stdioClient.close();
+  } finally {
+    assert.equal(dirname(await realpath(standalone)), temporaryRoot);
+    await rm(standalone, { recursive: true, force: true });
+  }
 }
 
 async function withHttpServer(args, env, check) {
@@ -172,12 +256,49 @@ async function withHttpServer(args, env, check) {
   }
 }
 
+async function checkHttpValidation(address, extraHeaders = {}) {
+  const headers = { accept: "application/json, text/event-stream", "content-type": "application/json", ...extraHeaders };
+  const post = (body, additionalHeaders = {}) => fetch(address, {
+    method: "POST", headers: { ...headers, ...additionalHeaders }, body,
+    signal: AbortSignal.timeout(5_000),
+  });
+  const malformed = await post("{");
+  assert.equal(malformed.status, 400);
+  assert.equal((await malformed.json()).error.code, -32700);
+
+  const oversized = await post(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: { padding: "x".repeat(70 * 1024) } }));
+  assert.equal(oversized.status, 413);
+  await oversized.text();
+
+  const unsupportedVersion = await post(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }), { "MCP-Protocol-Version": "1900-01-01" });
+  assert.equal(unsupportedVersion.status, 400);
+  await unsupportedVersion.text();
+  const unsupportedMethod = await fetch(address, { method: "PUT", headers, signal: AbortSignal.timeout(5_000) });
+  assert.equal(unsupportedMethod.status, 405);
+  await unsupportedMethod.text();
+}
+
+function requestStatus(url, headers) {
+  return new Promise((resolve, reject) => {
+    const req = request(url, { headers, signal: AbortSignal.timeout(5_000) }, (response) => {
+      response.resume();
+      resolve(response.statusCode);
+    });
+    req.on("error", reject).end();
+  });
+}
+
 await withHttpServer(["--http", "--port", "0"], {}, async (address, client) => {
+  await checkHttpValidation(address);
   await client.connect(new StreamableHTTPClientTransport(address));
   await checkCatalog(client);
+  const parallelResults = await Promise.all(catalogEntries.slice(0, 8).map(({ id }) => client.callTool({ name: "get_entry", arguments: { id } })));
+  assert.deepEqual(parallelResults.map(({ structuredContent }) => structuredContent.entry.id), catalogEntries.slice(0, 8).map(({ id }) => id));
   assert.equal((await fetch(address, { headers: { origin: "https://unrelated.example" } })).status, 403);
+  assert.equal(await requestStatus(address, { host: "unrelated.example" }), 403);
+  assert.equal((await fetch(new URL("/healthz", address), { method: "HEAD" })).status, 200);
   assert.equal((await fetch(new URL("/missing", address))).status, 404);
-  console.log("Loopback HTTP: inventory parity, tools, and Origin guard passed");
+  console.log("Loopback HTTP: request validation, concurrent tools, health, Host and Origin guards passed");
 });
 
 const host = "127.0.0.1";
@@ -187,20 +308,18 @@ await withHttpServer(["--hosted"], {
   MTKIT_PUBLIC_URL: `https://${host}/mcp`,
   MTKIT_MCP_TOKEN: token,
 }, async (address, client) => {
-  const status = (url, headers) => new Promise((resolve, reject) => {
-    const req = request(url, { headers }, (response) => {
-      response.resume();
-      resolve(response.statusCode);
-    });
-    req.on("error", reject).end();
-  });
-  assert.equal(await status(new URL("/healthz", address)), 200);
-  assert.equal(await status(address, { host: "unrelated.example" }), 403);
-  assert.equal(await status(address, { host }), 401);
-  assert.equal(await status(address, { host, authorization: `Bearer ${"0".repeat(64)}` }), 401);
-  assert.equal(await status(address, { host, origin: `http://${host}`, authorization: `Bearer ${token}` }), 403);
+  assert.equal(await requestStatus(new URL("/healthz", address)), 200);
+  assert.equal(await requestStatus(address, { host: "unrelated.example" }), 403);
+  assert.equal(await requestStatus(address, { host }), 401);
+  assert.equal(await requestStatus(address, { host, authorization: `Bearer ${"0".repeat(64)}` }), 401);
+  assert.equal(await requestStatus(address, { host, origin: `http://${host}`, authorization: `Bearer ${token}` }), 403);
+  const unauthorized = await fetch(address);
+  assert.equal(unauthorized.headers.get("www-authenticate"), 'Bearer realm="MTKit Catalog"');
+  assert.equal(unauthorized.headers.get("cache-control"), "no-store");
+  const authorizedHeaders = { authorization: `Bearer ${token}`, origin: `https://${host}` };
+  await checkHttpValidation(address, authorizedHeaders);
   await client.connect(new StreamableHTTPClientTransport(address, {
-    requestInit: { headers: { authorization: `Bearer ${token}`, origin: `https://${host}` } },
+    requestInit: { headers: authorizedHeaders },
   }));
   await checkCatalog(client);
   console.log("Hosted HTTP: health, Host and Origin guards, bearer authorization, inventory parity, and tools passed");

@@ -22,6 +22,8 @@ steps:
   - script: |
       set -e
       npm ci
+      npm run catalog:check
+      npm run catalog:test
       npm run catalog:inventory
       npm --prefix apps/web ci
       npm run web:build

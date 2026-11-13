@@ -13,7 +13,11 @@
     "catalog:check": "tsc --noEmit",
     "catalog:inventory": "node packages/catalog/check-inventory.mjs",
     "catalog:smoke": "node packages/mcp/smoke.mjs",
-    "install:test": "node --test scripts/install.test.mjs",
+    "catalog:test": "node --test packages/catalog/*.test.mjs packages/mcp/*.test.mjs",
+    "catalog:integrations": "node packages/mcp/integrations.mjs",
+    "catalog:agent-eval": "node packages/mcp/agent-evaluation.mjs",
+    "install:test": "node --test scripts/*.test.mjs",
+    "project:setup": "node scripts/setup-project.mjs",
     "web:dev": "npm --prefix apps/web run dev",
     "web:build": "npm --prefix apps/web run build",
     "web:preview": "npm --prefix apps/web run preview"

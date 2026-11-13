@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
 import { publishSkills, withInstallLock } from "./publish-skills.mjs";
 
 async function temporaryDirectory(t) {
@@ -57,4 +59,37 @@ test("the installer refuses simultaneous updates and releases its lock after err
     /installation failed/,
   );
   assert.equal(await withInstallLock(lock, () => "retry worked"), "retry worked");
+});
+
+test("project skill recipes copy the workflow references needed by each supported client", async (t) => {
+  const directory = await temporaryDirectory(t);
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const bundle = await build({
+    entryPoints: [join(root, "packages/catalog/index.ts")],
+    bundle: true, platform: "node", format: "esm", write: false,
+  });
+  const { planInstall } = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].contents).toString("base64")}`);
+
+  async function checkReferences(folder) {
+    for (const item of await readdir(folder, { withFileTypes: true })) {
+      const path = join(folder, item.name);
+      if (item.isDirectory()) await checkReferences(path);
+      else if (item.name.endsWith(".md")) {
+        const markdown = await readFile(path, "utf8");
+        for (const [, target] of markdown.matchAll(/\]\(([^\s)]+)\)/g)) {
+          if (/^(?:[a-z]+:|#)/i.test(target)) continue;
+          await assert.doesNotReject(access(resolve(dirname(path), target.split("#")[0])), `${path} links to missing ${target}`);
+        }
+      }
+    }
+  }
+
+  for (const client of ["claude-code", "cursor", "vscode"]) {
+    const project = join(directory, client);
+    const plan = planInstall("design-screen", client);
+    for (const skill of [plan.copySkill, ...(plan.companionSkills ?? [])]) {
+      await cp(join(root, skill.from), join(project, skill.to), { recursive: true });
+    }
+    await checkReferences(project);
+  }
 });

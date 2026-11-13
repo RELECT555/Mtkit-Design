@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
-import "./wheel-picker.css";
 
 // Adapted from Wheel Picker by Dorian Baffier, Kokonut UI. See WHEEL-PICKER-LICENSE.txt.
 const rowHeight = 36;

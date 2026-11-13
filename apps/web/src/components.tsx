@@ -4,6 +4,7 @@ import { mount } from "./app/mount";
 import { LikeBurst } from "./features/components/LikeBurst";
 import { WheelPicker } from "./features/components/WheelPicker";
 import { ShaderLoaderCard } from "./features/components/loader/ShaderLoaderCard";
+import { componentDemos } from "./features/components/content";
 import wheelLicense from "./features/components/WHEEL-PICKER-LICENSE.txt?url&no-inline";
 
 mount(
@@ -15,15 +16,15 @@ mount(
         <Card className="component-preview">
           <div className="component-preview-stage"><LikeBurst /></div>
           <div className="component-preview-caption">
-            <h2>Like Burst</h2>
-            <p>Поставьте отметку «Нравится» и посмотрите, как меняется счётчик.</p>
+            <h2>{componentDemos.like.title}</h2>
+            <p>{componentDemos.like.description}</p>
           </div>
         </Card>
         <Card className="component-preview">
           <div className="component-preview-stage"><WheelPicker /></div>
           <div className="component-preview-caption">
-            <h2>Wheel Picker</h2>
-            <p>Выберите время колёсиком мыши, жестом или стрелками.</p>
+            <h2>{componentDemos.wheel.title}</h2>
+            <p>{componentDemos.wheel.description}</p>
             <a className="inline-link" href={wheelLicense}>Лицензия MIT</a>
           </div>
         </Card>

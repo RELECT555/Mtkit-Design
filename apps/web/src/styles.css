@@ -121,7 +121,8 @@ code { font-family: var(--catalog-mono); }
 .tool-body p { color: var(--catalog-muted); font-size: 14px; line-height: 1.5; }
 .tool-category { font-size: 12px; color: var(--catalog-muted); }
 .tool-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--catalog-line); }
-#main .tool-actions button { min-height: 32px; padding: 4px 7px; background: transparent; color: var(--catalog-accent); }
+#main .tool-actions :is(button, .tool-detail-link) { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 7px; border: 1px solid var(--catalog-line); border-radius: 6px; background: transparent; color: var(--catalog-accent); font-size: 13px; font-weight: 620; text-decoration: none; }
+#main .tool-detail-link:hover { border-color: var(--catalog-accent); }
 .source-link { color: var(--catalog-muted); font-size: 12px; text-underline-offset: 3px; }
 .source-link:hover { color: var(--catalog-text); }
 .empty { display: grid; justify-items: center; gap: 10px; padding: 37px 14px; text-align: center; border: 1px dashed var(--catalog-line); border-radius: 8px; }

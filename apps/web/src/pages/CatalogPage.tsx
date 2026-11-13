@@ -5,13 +5,7 @@ import { Layout } from "../app/Layout";
 import { EntryDialog } from "../features/catalog/EntryDialog";
 import { ToolCard } from "../features/catalog/ToolCard";
 import { CatalogSummary } from "../features/catalog/CatalogSummary";
-
-const PAGE_SIZE = 12;
-const kinds = [
-  { value: "", label: "Все инструменты" },
-  { value: "skill", label: "Навыки" },
-  { value: "mcp", label: "MCP-серверы" },
-] as const;
+import { catalogIntro, catalogKinds, catalogPageSize } from "../features/catalog/content";
 
 type CatalogView = {
   query: string;
@@ -55,13 +49,13 @@ export function CatalogPage() {
     kind: kind || undefined,
     category: category || undefined,
     availability: availability || undefined,
-    limit: PAGE_SIZE,
+    limit: catalogPageSize,
   };
-  const results = queryCatalog({ ...filters, offset: view.page * PAGE_SIZE });
+  const results = queryCatalog({ ...filters, offset: view.page * catalogPageSize });
   const { total } = results;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(total / catalogPageSize));
   const page = Math.min(view.page, pages - 1);
-  const entries = page === view.page ? results.entries : queryCatalog({ ...filters, offset: page * PAGE_SIZE }).entries;
+  const entries = page === view.page ? results.entries : queryCatalog({ ...filters, offset: page * catalogPageSize }).entries;
   const hasFilters = Boolean(query || kind || category || availability);
 
   useEffect(() => {
@@ -140,8 +134,8 @@ export function CatalogPage() {
         <div className="page-container catalog-intro">
           <div>
             <a className="inline-link breadcrumb" href="/">← О MTKit Design</a>
-            <h1>Навыки и MCP<span>.</span></h1>
-            <p>Найдите инструмент для TypeScript и React. Откройте карточку, чтобы проверить требования, перейти к источнику и получить инструкцию для вашего агента.</p>
+            <h1>{catalogIntro.title}<span>.</span></h1>
+            <p>{catalogIntro.description}</p>
           </div>
           <CatalogSummary />
         </div>
@@ -151,7 +145,7 @@ export function CatalogPage() {
           <label className="search-field">
             <span className="search-icon" aria-hidden="true" />
             <span className="sr-only">Поиск по каталогу</span>
-            <Input ref={searchRef} type="search" value={query} maxLength={250} placeholder="Например, доступность или Playwright" onChange={(event) => updateFilters({ query: event.target.value })} />
+            <Input ref={searchRef} type="search" value={query} maxLength={250} placeholder={catalogIntro.searchPlaceholder} onChange={(event) => updateFilters({ query: event.target.value })} />
           </label>
           <label className="category-field">
             <span className="sr-only">Категория</span>
@@ -171,7 +165,7 @@ export function CatalogPage() {
         </div>
         <div className="results-bar">
           <div className="switcher" role="group" aria-label="Тип инструмента">
-            {kinds.map(({ value, label }) => (
+            {catalogKinds.map(({ value, label }) => (
               <Button key={value} type="button" aria-pressed={kind === value} onClick={() => updateFilters({ kind: value })}>{label}</Button>
             ))}
           </div>

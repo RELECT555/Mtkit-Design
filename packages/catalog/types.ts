@@ -40,6 +40,11 @@ export interface InstallStep {
   cwd?: string;
 }
 
+export interface SkillCopy {
+  from: string;
+  to: string;
+}
+
 interface InstallPlanDetails {
   entryId: string;
   availability: EntryAvailability;
@@ -58,4 +63,4 @@ export interface CodexInstallPlan extends InstallPlanDetails, InstallStep {
 export type InstallPlan = CodexInstallPlan | (InstallPlanDetails & {
   client: ProjectClient;
   scope: "project";
-} & ({ configuration: ProjectConfiguration } | { copySkill: { from: string; to: string } }));
+} & ({ configuration: ProjectConfiguration } | { copySkill: SkillCopy; companionSkills?: readonly SkillCopy[] }));

@@ -1,8 +1,7 @@
 import { Button, Card } from "@mtkit/ui";
 import { Layout } from "../app/Layout";
-import { guideExamples } from "../features/guide/examples";
+import { guideExamples, guideIntro } from "../features/guide/examples";
 import { CopyButton } from "../shared/Command";
-import "./guide.css";
 
 export function GuidePage() {
   return (
@@ -10,11 +9,11 @@ export function GuidePage() {
       <div className="page-container guide-page">
         <header className="guide-intro">
           <div>
-            <h1>Как работать с MTKit Design<span>.</span></h1>
-            <p>Опишите задачу обычными словами. MTKit Catalog подберёт навыки и MCP, а агент применит те, что ему доступны.</p>
+            <h1>{guideIntro.title}<span>.</span></h1>
+            <p>{guideIntro.description}</p>
           </div>
           <Button asChild variant="outline" className="guide-connect">
-            <a href="/#connect">Подключить агента <span aria-hidden="true">↗</span></a>
+            <a href="/#connect">{guideIntro.connectLabel} <span aria-hidden="true">↗</span></a>
           </Button>
         </header>
 
