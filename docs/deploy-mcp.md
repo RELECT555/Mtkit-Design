@@ -1,34 +1,51 @@
-# Развёртывание MTKit Catalog MCP
+# Runbook DevOps · MTKit Catalog MCP
 
-Веб-каталог можно разместить в Azure как статический сайт. Он использует тот же пакет `packages/catalog`, что и MCP. Для доступа к каталогу из Codex, Claude Code, Cursor и VS Code с Copilot разверните MCP на корпоративном Linux-сервере и подключите его через HTTPS. Сайт можно собрать и открыть независимо от доступности MCP.
+Разверните MTKit Catalog MCP на корпоративном Linux и предоставьте команде HTTPS-адрес с путём `/mcp`, доступный из корпоративной сети или VPN. Сайт MTKit Design публикуется отдельно в Azure Static Web Apps. Агент обращается к MCP напрямую. [Публикация сайта в Azure](deploy-web.md)
 
-## Корпоративный Linux-сервер
-
-Понадобятся Docker, выделенное DNS-имя в корпоративной сети и HTTPS-вход через существующий reverse proxy. Клиент должен видеть это имя из сети компании или VPN. На машине сборки нужен доступ к публичному npm registry. Закрытый пакет `@mtkit/ui` для образа MCP не требуется.
-
-Из корня репозитория соберите образ. Сборка запускает smoke-тест трёх режимов MCP.
-
-```bash
-docker build -t mtkit-catalog:<release> .
+```text
+Codex / Claude Code / Cursor / Copilot → HTTPS-прокси → контейнер MTKit Catalog
+Сайт Azure Static Web Apps → показывает каталог и инструкции подключения
 ```
 
-В защищённом файле окружения на сервере укажите выделенный адрес HTTPS и секрет. Для токена подойдёт случайное 32-байтное значение в hex. Выдайте его команде через корпоративное хранилище секретов.
+Контейнер читает каталог из собранного приложения, ищет инструменты, отдаёт карточки и формирует планы установки. Ему достаточно публичных npm-зависимостей при сборке. База данных, Azure Artifacts и установка плагина на сервере не требуются. Навыки и дополнительные MCP из комплекта устанавливаются в окружении сотрудника. [Установка плагина](../README.md#установка-плагина)
+
+## 1. Подготовить окружение
+
+- Получите доступ к Git-репозиторию или исходникам нужной ревизии. Для примера ниже нужен Git checkout. При сборке в CI используйте тот же Dockerfile и передайте на хост образ по тегу ревизии из корпоративного registry.
+- Выберите Linux-хост с Docker и HTTPS-прокси. В примере nginx работает на том же хосте, что и Docker. Хосту сборки нужен доступ к образу `node:24-bookworm-slim` и публичному npm registry.
+- Назначьте DNS-имя и сертификат, которому доверяют рабочие машины. Пример ниже использует `mcp.company.example`. Подставьте реальное имя во всех примерах. Клиенты должны разрешать его и подключаться по HTTPS из корпоративной сети или VPN.
+- Создайте каталог `/etc/mtkit-catalog` с доступом только для администраторов. Сохраните файл `mcp.env` с правами `600`. Для `MTKIT_MCP_TOKEN` используйте секрет из корпоративного хранилища. Подходит случайное 32-байтное значение в hex, например результат `openssl rand -hex 32`, сохранённый в хранилище.
 
 ```dotenv
-MTKIT_PUBLIC_URL=https://<корпоративный-хост>/mcp
-MTKIT_MCP_TOKEN=<секрет>
+MTKIT_PUBLIC_URL=https://mcp.company.example/mcp
+MTKIT_MCP_TOKEN=<значение из хранилища>
 PORT=8080
 ```
 
-Если reverse proxy работает на том же сервере, опубликуйте контейнерный порт только на loopback.
+`MTKIT_PUBLIC_URL` задаёт HTTPS-имя, которое проверяет сервер. Используйте путь `/mcp` без завершающего слеша. Сервис принимает один общий bearer-токен. Храните его вне Git и выдавайте сотрудникам через хранилище секретов.
+
+## 2. Собрать и запустить контейнер
+
+На машине сборки откройте чистый checkout согласованной ревизии и выполните команды из корня репозитория. [Dockerfile](../Dockerfile) запускает проверку типов и smoke-тесты stdio, loopback HTTP и hosted HTTP.
+
+```bash
+release=$(git rev-parse --verify HEAD)
+docker build -t "mtkit-catalog:${release}" .
+```
+
+Выполните запуск на Linux-хосте с этим образом. Если сборка была в CI, сначала загрузите образ из registry и используйте его полное имя в команде запуска. Привязка к `127.0.0.1` подходит, когда nginx находится на том же хосте. [Публикация портов Docker](https://docs.docker.com/engine/network/port-publishing/)
 
 ```bash
 docker run -d --name mtkit-catalog --restart unless-stopped \
   --env-file /etc/mtkit-catalog/mcp.env \
-  -p 127.0.0.1:8080:8080 mtkit-catalog:<release>
+  -p 127.0.0.1:8080:8080 "mtkit-catalog:${release}"
 ```
 
-В существующем HTTPS-блоке nginx выделенного хоста добавьте маршрут. Прокси должен передавать `Authorization`, сохранять имя MCP в `Host` и пропускать потоковые ответы.
+На отдельном хосте задайте `release` в терминале значением SHA из сборки. Для прокси на другой машине используйте корпоративную схему доступа к upstream и ограничьте порт так, чтобы к нему мог подключаться прокси.
+
+## 3. Настроить HTTPS-прокси
+
+Добавьте маршрут в существующий HTTPS-блок nginx для выбранного DNS-имени. Сохраните клиентский `Host` и `Authorization` и отключите буферизацию ответа для Streamable HTTP. [Документация nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html)
 
 ```nginx
 location = /mcp {
@@ -41,23 +58,59 @@ location = /mcp {
 }
 ```
 
-Проверьте `curl -f http://127.0.0.1:8080/healthz` на сервере. Затем в рабочем терминале с `MTKIT_MCP_TOKEN` подключите HTTPS-адрес и откройте новый чат Codex.
+Выполните `nginx -t` и перезагрузите конфигурацию штатным способом. `/healthz` проверяется локально на хосте и отсутствует в опубликованном маршруте nginx.
+
+## 4. Проверить и передать команде
+
+На хосте проверьте ответ `ok` и состояние `healthy`. Docker обновляет состояние после очередного health check.
 
 ```bash
-codex mcp add mtkit_catalog_remote --url "https://<корпоративный-хост>/mcp" --bearer-token-env-var MTKIT_MCP_TOKEN
+curl -fsS http://127.0.0.1:8080/healthz
+docker inspect --format '{{.State.Health.Status}}' mtkit-catalog
 ```
 
-Чтобы показать варианты командного подключения на сайте, задайте `VITE_MTKIT_MCP_URL` при сборке фронта. В эту переменную входит только адрес. В разделе подключения выберите агента и «Командный MCP». Для Claude Code, Cursor и Copilot сайт сформирует проектный JSON с заголовком `Authorization` и ссылкой на `MTKIT_MCP_TOKEN`. Задайте переменную в окружении, из которого запускаете клиент, и объедините `mcpServers` с существующим конфигом.
+С рабочего компьютера в корпоративной сети или VPN проверьте HTTPS без токена. Ожидаемый код `401` подтверждает, что запрос дошёл до проверки авторизации. В Windows PowerShell используйте `curl.exe` и замените `/dev/null` на `NUL`.
 
-Попросите агента вызвать `list_categories`, найти Playwright и открыть его карточку. Полный состав каталога доступен как ресурс `mtkit://catalog/inventory`.
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' https://mcp.company.example/mcp
+```
 
-Для Claude в браузере нужен endpoint, доступный из сети Anthropic. Инструкции выше относятся к Claude Code, который работает в окружении разработчика. [Требования к Claude Connectors](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp)
+Задайте `MTKIT_MCP_TOKEN` в окружении, из которого запускаете Codex. Зарегистрируйте URL и откройте новый чат. Если проверяете из Desktop, перезапустите приложение с доступной ему переменной окружения.
 
-## Azure Container Apps
+```bash
+codex mcp add mtkit_catalog_remote --url https://mcp.company.example/mcp --bearer-token-env-var MTKIT_MCP_TOKEN
+```
 
-Если MCP нужен в Azure, тот же образ можно загрузить в корпоративный registry и запустить в существующем Container Apps environment. Укажите порт ingress `8080`, оставьте HTTPS обязательным и настройте доступ согласно правилам сети. Задайте `MTKIT_PUBLIC_URL` как реальный HTTPS-адрес с путём `/mcp`, а `MTKIT_MCP_TOKEN` как ссылку на секрет Container App или Key Vault. Для startup и readiness используйте `GET /healthz`. Если registry закрытый, используйте управляемую identity с разрешением на загрузку образа. [Ingress](https://learn.microsoft.com/en-us/azure/container-apps/ingress-how-to) · [Secrets](https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets) · [Pull с управляемой identity](https://learn.microsoft.com/en-us/azure/container-apps/managed-identity-image-pull)
+Попросите Codex использовать именно `mtkit_catalog_remote`, вызвать `list_categories`, найти Playwright через `search_entries`, открыть карточку через `get_entry` и запросить `plan_install`. Успешный ответ с карточкой и планом подтверждает работу полного маршрута через TLS, прокси и авторизацию.
 
-## Локальная проверка
+Передайте команде HTTPS-адрес, условия доступа через сеть или VPN и ссылку на секрет в корпоративном хранилище. При сборке сайта укажите этот же адрес в параметре `mtkitMcpUrl` Azure-пайплайна. Пайплайн передаст его как `VITE_MTKIT_MCP_URL`, и на сайте появится режим «Командный MCP». Значение токена остаётся в окружении сервера и клиентов. [Azure-пайплайн](../deploy/azure-static-web-app.yml)
+
+Для Claude Code, Cursor и Copilot выберите клиент в разделе подключения сайта и объедините сгенерированный `mcpServers` с конфигурацией проекта. Клиент должен получить `MTKIT_MCP_TOKEN` из своего окружения. Для Claude в браузере действуют отдельные сетевые требования. [Требования Claude Connectors](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp)
+
+## 5. Обновить или откатить
+
+1. Запишите текущий образ командой `docker inspect --format '{{.Config.Image}}' mtkit-catalog` и сохраните его тег в локальном кеше или registry. Соберите или загрузите новый образ до остановки сервиса.
+2. В согласованное окно остановите текущий контейнер командой `docker stop mtkit-catalog`, удалите остановленный контейнер командой `docker rm mtkit-catalog` и запустите новый по шагу 2. При одном контейнере на одном порту будет короткий перерыв.
+3. Повторите проверки хоста и подключения по HTTPS из шага 4. Если новая версия не проходит проверку, повторите замену с предыдущим образом и снова выполните проверки. Каталог содержится в образе, поэтому восстановление данных не требуется. При изменении состава каталога соберите сайт и MCP из одной ревизии.
+4. При ротации токена обновите секрет у сотрудников и серверный `mcp.env`, затем пересоздайте контейнер с этим файлом. Запущенный контейнер сохраняет окружение, переданное при создании. Старый токен перестаёт действовать после переключения. [Переменные окружения Docker](https://docs.docker.com/reference/cli/docker/container/run/#env)
+
+## Диагностика
+
+| Симптом | Что проверить |
+| --- | --- |
+| `/healthz` на хосте не отвечает | `docker ps -a`, `docker logs --tail 100 mtkit-catalog`, корректность переменных и привязку порта `8080`. |
+| HTTPS не открывается или клиент не доверяет сертификату | DNS из VPN, сетевой маршрут, срок и цепочку сертификата. |
+| `502` или `504` от прокси | Состояние контейнера и доступность upstream с хоста прокси. |
+| `404` на HTTPS-адресе | DNS-имя и точный путь `/mcp` в клиенте и прокси. |
+| `401` при запросе из Codex | Токен в окружении процесса клиента, совпадение с серверным секретом и передачу `Authorization` прокси. |
+| `403` | Заголовок `Host` должен соответствовать имени из `MTKIT_PUBLIC_URL`. Если клиент передаёт `Origin`, тот должен совпасть с HTTPS origin этого URL. |
+| На сайте нет режима «Командный MCP» | Значение `mtkitMcpUrl` при последней сборке сайта. |
+
+## Если MCP размещается в Azure Container Apps
+
+Используйте тот же образ и целевой порт ingress `8080`. Настройте HTTPS и доступность из корпоративной сети, задайте `MTKIT_PUBLIC_URL` с адресом ingress и путём `/mcp`, передайте `MTKIT_MCP_TOKEN` через секрет Container App или Key Vault. Для startup и readiness используйте `GET /healthz`. Если registry закрытый, выдайте управляемой identity право на загрузку образа. [Ingress](https://learn.microsoft.com/en-us/azure/container-apps/ingress-how-to) · [Секреты](https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets) · [Загрузка образа через identity](https://learn.microsoft.com/en-us/azure/container-apps/managed-identity-image-pull)
+
+## Проверить MCP локально до деплоя
 
 ```bash
 npm ci
@@ -66,4 +119,4 @@ npm run catalog:build
 npm run catalog:smoke
 ```
 
-Обычный запуск плагина в Codex использует stdio. `npm run catalog:serve` поднимает локальный HTTP на `127.0.0.1:4387`. Контейнер запускает режим `--hosted`, в котором `/mcp` требует bearer-токен и проверяет Host и Origin. Терминация TLS выполняется HTTPS-прокси.
+`npm run catalog:serve` запускает режим разработки на `http://127.0.0.1:4387/mcp`. Плагин запускает свой экземпляр через stdio. Docker запускает `--hosted`, а TLS завершается на прокси.
