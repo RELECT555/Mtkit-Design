@@ -1,11 +1,12 @@
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@mtkit/ui";
-import { planInstall, queryCatalog } from "@mtkit-design/catalog";
+import { planInstall, recommendForTask } from "@mtkit-design/catalog";
 import { useEffect, useRef, useState } from "react";
 import { Command } from "../../shared/Command";
+import { workflowExample } from "./content";
 import type { createShaderRenderer as createRenderer } from "../shaders/webgl";
 
-const matches = queryCatalog({ query: "доступность браузер", limit: 2 }).entries;
-const entry = matches.find(({ kind }) => kind === "mcp") ?? matches[0];
+const recommendations = recommendForTask(workflowExample.task);
+const entry = recommendations.find(({ entry }) => entry.id === "playwright")?.entry;
 const plan = entry && planInstall(entry.id);
 const backdropSettings = { colors: ["#f4aa8e", "#9b85ff"], speed: 0.65, intensity: 1.1 } as const;
 
@@ -85,30 +86,28 @@ export function McpWorkflow() {
       <WorkflowBackdrop />
       <div className="workflow-grid">
         <div className="workflow-intro">
-          <h2 id="workflow-title">Как работает MCP</h2>
-          <p className="workflow-prompt">«Найди инструменты для проверки доступности React-экрана»</p>
+          <h2 id="workflow-title">{workflowExample.title}</h2>
+          <p className="workflow-prompt">«{workflowExample.task}»</p>
         </div>
-        <Tabs className="workflow-example" defaultValue="search">
+        <Tabs className="workflow-example" defaultValue="recommend">
           <TabsList className="workflow-controls" aria-label="Шаги примера">
-            <TabsTrigger value="search">Поиск</TabsTrigger>
-            <TabsTrigger value="entry">Карточка</TabsTrigger>
-            <TabsTrigger value="install">Установка</TabsTrigger>
+            {workflowExample.steps.map(({ id, label }) => <TabsTrigger key={id} value={id}>{label}</TabsTrigger>)}
           </TabsList>
-          <TabsContent className="workflow-output" value="search">
-            <code>search_entries</code>
-            <ul>{matches.map((match) => (
-              <li key={match.id}>
-                <a href={`/catalog/?entry=${encodeURIComponent(match.id)}`}>{match.title}</a>
-                <span>{match.category}</span>
+          <TabsContent className="workflow-output" value="recommend">
+            <code>{workflowExample.steps[0].tool}</code>
+            <ul>{recommendations.map(({ entry }) => (
+              <li key={entry.id}>
+                <a href={`/catalog/?entry=${encodeURIComponent(entry.id)}`}>{entry.title}</a>
+                <span>{entry.kind === "skill" ? "Навык" : "MCP"}</span>
               </li>
             ))}</ul>
           </TabsContent>
           <TabsContent className="workflow-output" value="entry">
-            <code>get_entry</code>
+            <code>{workflowExample.steps[1].tool}</code>
             {entry && <><p className="workflow-entry">{entry.title}</p><p>{entry.access}</p></>}
           </TabsContent>
           <TabsContent className="workflow-output" value="install">
-            <code>plan_install</code>
+            <code>{workflowExample.steps[2].tool}</code>
             {plan && <Command value={plan.steps.map(({ command, args }) => [command, ...args].join(" ")).join("\n")} />}
           </TabsContent>
         </Tabs>

@@ -2,10 +2,10 @@ import { Button, Card } from "@mtkit/ui";
 import { catalogCounts, getEntry } from "@mtkit-design/catalog";
 import { Layout } from "../app/Layout";
 import { ConnectPanel } from "../features/connect/ConnectPanel";
+import { featuredToolIds, heroContent } from "../features/home/content";
 import { McpWorkflow } from "../features/home/McpWorkflow";
-import "./home.css";
 
-const featured = ["design-screen", "context7", "playwright"].flatMap((id) => {
+const featured = featuredToolIds.flatMap((id) => {
   const entry = getEntry(id);
   return entry ? [entry] : [];
 });
@@ -15,25 +15,19 @@ export function HomePage() {
     <Layout page="home">
       <div className="page-container home-container">
         <section className="hero" aria-labelledby="hero-title">
-          <h1 id="hero-title">Навыки и MCP<br />для фронтенда<span>.</span></h1>
-          <p className="hero-description">Всё для проектирования, разработки и проверки интерфейсов на React, TypeScript и <code>@mtkit/ui</code>.</p>
+          <h1 id="hero-title">{heroContent.title[0]}<br />{heroContent.title[1]}<span>.</span></h1>
+          <p className="hero-description">{heroContent.description} <code>@mtkit/ui</code>.</p>
           <div className="hero-actions">
-            <Button asChild>
-              <a className="action action-primary" href="#connect">
-                Подключить MCP
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M8 3v10m-4-4 4 4 4-4" />
-                </svg>
-              </a>
-            </Button>
-            <Button asChild variant="ghost">
-              <a className="action action-outline" href="/catalog/">
-                Открыть каталог
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 8h10m-4-4 4 4-4 4" />
-                </svg>
-              </a>
-            </Button>
+            {heroContent.actions.map(({ href, label, icon, variant, style }) => (
+              <Button key={href} asChild variant={variant}>
+                <a className={`action action-${style}`} href={href}>
+                  {label}
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d={icon} />
+                  </svg>
+                </a>
+              </Button>
+            ))}
           </div>
         </section>
 

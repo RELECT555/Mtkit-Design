@@ -38,7 +38,7 @@
 .hero-actions .action-primary:hover { filter: brightness(1.08); }
 .hero-actions .action-outline:hover { border-color: var(--catalog-line); background: var(--catalog-panel); }
 
-.home-container h2 { font-size: clamp(26px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -.05em; }
+.home-container h2 { font-size: clamp(26px, 3.4vw, 42px); font-weight: 650; line-height: 1.12; letter-spacing: -.05em; }
 .workflow {
   position: relative;
   isolation: isolate;
@@ -82,7 +82,10 @@
 .workflow-prompt { max-width: 25ch; font-size: clamp(17px, 2.25vw, 27px); font-weight: 500; line-height: 1.35; letter-spacing: -.025em; text-wrap: pretty; }
 .workflow-example { min-width: 0; overflow: hidden; gap: 0; border: 1px solid var(--catalog-line); border-radius: 12px; background: color-mix(in srgb, var(--catalog-inset) 94%, transparent); }
 .workflow-controls { display: flex; width: 100%; height: auto; justify-content: flex-start; gap: 3px; padding: 7px; border-bottom: 1px solid var(--catalog-line); border-radius: 0; background: transparent; }
-#main .workflow-controls button {
+.workflow-controls :is(button, .workflow-static-step) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   height: auto;
   min-width: 0;
@@ -93,16 +96,17 @@
   background: transparent;
   color: var(--catalog-muted);
   font-size: 13px;
+  font-weight: 500;
 }
-#main .workflow-controls button[data-state="active"] { border-color: var(--catalog-line); background: var(--catalog-panel); color: var(--catalog-accent); }
-#main .workflow-controls button:hover { color: var(--catalog-text); }
+.workflow-controls [data-state="active"] { border-color: var(--catalog-line); background: var(--catalog-panel); color: var(--catalog-accent); }
+.workflow-controls button:hover { color: var(--catalog-text); }
 .workflow-example :focus-visible { outline-offset: -3px; }
 .workflow-output { min-height: 134px; padding: 12px 15px; overflow-wrap: anywhere; }
 .workflow-output > code { color: var(--catalog-accent); font-size: 12px; }
 .workflow-output ul, .featured-grid { margin: 0; padding: 0; list-style: none; }
 .workflow-output ul { margin-top: 6px; }
 .workflow-output li { display: flex; justify-content: space-between; gap: 6px 14px; padding-block: 5px; font-size: 14px; }
-.workflow-output li a { text-underline-offset: 3px; }
+.workflow-output li a { text-decoration: underline; text-underline-offset: 3px; }
 .workflow-output li a:hover { color: var(--catalog-accent); }
 .workflow-output li span { flex: none; color: var(--catalog-muted); text-align: right; font-size: 12px; }
 .workflow-output p { margin-top: 5px; color: var(--catalog-muted); font-size: 14px; line-height: 1.45; }
@@ -117,11 +121,12 @@
 .featured-card { height: 100%; padding: 0; border: 1px solid var(--catalog-line); border-radius: 10px; background: var(--catalog-surface); color: var(--catalog-text); box-shadow: none; }
 .featured-item { display: grid; align-content: start; gap: 9px; height: 100%; padding: 17px; border-radius: inherit; text-decoration: none; }
 .featured-item:hover h3 { color: var(--catalog-accent); }
-.featured-item h3 { display: flex; justify-content: space-between; gap: 8px; font-size: 17px; letter-spacing: -.02em; }
+.featured-item h3 { display: flex; justify-content: space-between; gap: 8px; font-size: 17px; font-weight: 620; letter-spacing: -.02em; }
 .featured-item h3 span { color: var(--catalog-accent); font-size: 14px; }
 .featured-item p { color: var(--catalog-muted); font-size: 14px; line-height: 1.55; }
 
 .connect { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: clamp(22px, 5vw, 72px); align-items: start; border-top: 1px solid var(--catalog-line); }
+.home-container .connect-description { margin-top: 9px; color: var(--catalog-muted); line-height: 1.55; }
 .connect-panel { min-width: 0; padding: clamp(14px, 2vw, 22px); border: 1px solid var(--catalog-line); border-radius: 10px; background: var(--catalog-surface); }
 .connect-panel .switcher { margin-bottom: 15px; }
 .connect-instructions { display: grid; gap: 12px; }

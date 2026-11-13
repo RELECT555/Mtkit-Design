@@ -5,6 +5,7 @@ import { ClientPicker } from "../../shared/ClientPicker";
 import { Command } from "../../shared/Command";
 import { McpConfig } from "../../shared/McpConfig";
 import { codexCommand, hostedEndpoint } from "../../shared/connection";
+import { connectIntro } from "../home/content";
 
 const modes = [
   { id: "plugin", label: "Плагин Codex" },
@@ -30,8 +31,8 @@ export function ConnectPanel() {
   return (
     <section className="page-container home-container connect" id="connect" aria-labelledby="connect-title">
       <div>
-        <h2 id="connect-title">Подключите своего агента</h2>
-        <p>MTKit Catalog даёт доступ к поиску и планам установки. В Codex весь набор можно поставить одним плагином. Для остальных агентов инструкции по установке есть в каждой карточке.</p>
+        <h2 id="connect-title">{connectIntro.title}</h2>
+        <p className="connect-description">{connectIntro.description}</p>
       </div>
       <div className="connect-panel">
         <ClientPicker client={client} onChange={changeClient} />
@@ -67,7 +68,7 @@ export function ConnectPanel() {
               ) : <McpConfig configuration={catalogConnection(client, mode === "hosted" ? hostedEndpoint : undefined)} />}
             </>
           )}
-          <p>Откройте новый чат {clientLabels[client]} и попросите найти MCP для проверки интерфейса в браузере.</p>
+          <p>Откройте новый чат {clientLabels[client]} и попробуйте <a className="inline-link" href="/guide/">готовые промпты для MTKit Design</a>.</p>
         </div>
       </div>
     </section>

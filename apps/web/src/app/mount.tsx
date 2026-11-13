@@ -3,33 +3,23 @@ import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-const routes = ["/", "/catalog/", "/shaders/", "/shaders/components/", "/logo/"];
-
-function routePosition(url: string) {
-  const path = new URL(url).pathname.replace(/\/?$/, "/");
-  return routes.indexOf(path);
-}
-
-window.addEventListener("pagereveal", (event) => {
-  const activation = (window as Window & { navigation?: { activation: NavigationActivation | null } }).navigation?.activation;
-  if (!event.viewTransition || !activation) return;
-  const { from, entry: to } = activation;
-  if (!from?.url || !to?.url) return;
-
-  const start = routePosition(from.url);
-  const end = routePosition(to.url);
-  const direction = activation.navigationType === "traverse" ? to.index - from.index : end - start;
-  if (start < 0 || end < 0 || direction === 0) return;
-
-  const root = document.documentElement;
-  root.dataset.routeDirection = direction > 0 ? "forward" : "back";
-  void event.viewTransition.finished.finally(() => { delete root.dataset.routeDirection; });
-});
-
 export function mount(page: ReactNode) {
   const root = document.getElementById("root");
   if (!root) throw new Error("Missing application root");
+  const homePreview = root.querySelector('[data-loading-page="home"]');
+  const active = document.activeElement;
+  const focusedTarget = homePreview?.contains(active) ? homeFocusTarget(active) : undefined;
   const app = createRoot(root);
-  // Commit the first view before the browser captures it for navigation.
+  // Replace the initial HTML atomically and restore keyboard focus on the homepage.
   flushSync(() => app.render(page));
+  if (focusedTarget) root.querySelector<HTMLElement>(focusedTarget)?.focus({ preventScroll: true });
+  window.dispatchEvent(new Event("mtkit:mounted"));
+}
+
+function homeFocusTarget(active: Element | null) {
+  if (active?.matches("main, .loading-skip")) return "#main";
+  if (!(active instanceof HTMLAnchorElement)) return;
+  const section = active.closest("section[id], .hero, .site-header");
+  const scope = section?.id ? `#${CSS.escape(section.id)}` : section?.matches(".hero") ? ".hero" : ".site-header";
+  return `${scope} a[href="${CSS.escape(active.getAttribute("href") ?? "")}"]`;
 }

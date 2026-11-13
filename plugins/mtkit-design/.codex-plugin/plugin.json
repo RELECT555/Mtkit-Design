@@ -1,17 +1,17 @@
 {
   "name": "mtkit-design",
   "version": "0.3.0",
-  "description": "Find TypeScript skills and MCP servers, and build Medipal screens with @mtkit/ui.",
+  "description": "Recommend skills and MCP tools for frontend tasks, and build Medipal screens with @mtkit/ui.",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "MTKit Design",
     "shortDescription": "Каталог навыков и MCP для TypeScript",
-    "longDescription": "Находит инструменты в каталоге, готовит план установки в Codex и помогает собирать интерфейсы на @mtkit/ui.",
+    "longDescription": "Подбирает навыки и MCP по описанию задачи, готовит планы установки и помогает собирать интерфейсы на @mtkit/ui.",
     "category": "Development",
     "defaultPrompt": [
-      "Найди в каталоге инструменты для проверки адаптивности и доступности React-приложения.",
-      "Проверь интерфейс на десктопе и телефоне и исправь найденные проблемы."
+      "Сделай экран заявок на React и TypeScript. Пользователь должен найти просроченную заявку и назначить ответственного.",
+      "Проверь интерфейс на десктопе и телефоне, включая навигацию с клавиатуры. Проведи только ревью."
     ]
   }
 }

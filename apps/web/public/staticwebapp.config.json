@@ -2,6 +2,8 @@
   "routes": [
     { "route": "/catalog", "rewrite": "/catalog/index.html" },
     { "route": "/catalog/", "rewrite": "/catalog/index.html" },
+    { "route": "/guide", "rewrite": "/guide/index.html" },
+    { "route": "/guide/", "rewrite": "/guide/index.html" },
     { "route": "/shaders", "rewrite": "/shaders/index.html" },
     { "route": "/shaders/", "rewrite": "/shaders/index.html" },
     { "route": "/shaders/components", "rewrite": "/shaders/components/index.html" },

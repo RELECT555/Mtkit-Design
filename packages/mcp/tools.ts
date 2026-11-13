@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/server";
-import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planInstall, queryCatalog } from "@mtkit-design/catalog";
+import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planInstall, queryCatalog, recommendForTask } from "@mtkit-design/catalog";
 import * as z from "zod/v4";
 import { version } from "./package.json";
 
@@ -20,7 +20,18 @@ const searchInput = z.strictObject({
   offset: z.number().int().min(0).max(10_000).default(0).describe("Offset returned by the previous search page."),
 });
 
-const entryId = z.string().trim().min(1).max(100).describe("Catalog entry ID returned by search_entries.");
+const entryId = z.string().trim().min(1).max(100).describe("Catalog entry ID returned by recommend_tools or search_entries.");
+
+const recommendationOutput = z.object({
+  recommendations: z.array(z.object({
+    id: z.string(),
+    kind: z.enum(["skill", "mcp"]),
+    name: z.string(),
+    title: z.string(),
+    availability: z.enum(["bundled", "optional"]),
+    reason: z.string(),
+  })),
+});
 
 function jsonResult(structuredContent: Record<string, unknown>) {
   return {
@@ -39,7 +50,7 @@ function unknownEntry(id: string) {
 export function createCatalogServer() {
   const server = new McpServer(
     { name: "mtkit-catalog", version },
-    { instructions: "Browse the complete catalog at mtkit://catalog/inventory or find a curated TypeScript tool with search_entries. Review its source and requirements with get_entry, then request installation steps for your client with plan_install." },
+    { instructions: "For a user task involving TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short description of the task. The user can describe the work in natural language. Use search_entries for direct catalog searches and browse mtkit://catalog/inventory for the complete inventory." },
   );
 
   server.registerResource("inventory", inventoryUri, {
@@ -60,6 +71,18 @@ export function createCatalogServer() {
     inputSchema: z.strictObject({}),
     annotations: readOnly,
   }, async () => jsonResult({ categories: catalogCategories, counts: catalogCounts }));
+
+  server.registerTool("recommend_tools", {
+    title: "Recommend skills and MCP servers for a task",
+    description: "Choose relevant skills and MCP servers before working on a TypeScript frontend task. Pass the user's goal in natural language, including the framework or constraints when known. Apply relevant recommendations that are available in this session. Use get_entry for requirements and plan_install if setup is needed. Bundled means included in the MTKit Design plugin.",
+    inputSchema: z.strictObject({
+      task: z.string().trim().min(1).max(2_000).describe("Short description of what the user wants to accomplish, in Russian or English."),
+    }),
+    outputSchema: recommendationOutput,
+    annotations: readOnly,
+  }, async ({ task }) => jsonResult({
+    recommendations: recommendForTask(task).map(({ entry: { id, kind, name, title, availability }, reason }) => ({ id, kind, name, title, availability, reason })),
+  }));
 
   server.registerTool("search_entries", {
     title: "Search the MTKit catalog",

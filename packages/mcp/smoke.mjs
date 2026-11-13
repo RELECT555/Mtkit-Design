@@ -23,7 +23,7 @@ const { catalogCategories, catalogCounts, catalogEntries } = await import(
 
 async function checkCatalog(client) {
   const listing = await client.listTools();
-  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["get_entry", "list_categories", "plan_install", "search_entries"]);
+  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["get_entry", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
 
   const uri = "mtkit://catalog/inventory";
   const listed = await client.listResources();
@@ -41,6 +41,30 @@ async function checkCatalog(client) {
 
   const search = await client.callTool({ name: "search_entries", arguments: { query: "документация React", kind: "mcp", limit: 2 } });
   assert.equal(search.structuredContent.entries[0].id, "context7");
+
+  const recommend = async (task) => {
+    const result = await client.callTool({ name: "recommend_tools", arguments: { task } });
+    assert(!result.isError);
+    const { recommendations } = result.structuredContent;
+    assert.equal(new Set(recommendations.map(({ id }) => id)).size, recommendations.length);
+    for (const { id, name, kind, reason } of recommendations) {
+      assert(catalogEntries.some((entry) => entry.id === id && entry.name === name && entry.kind === kind));
+      assert(reason);
+    }
+    return recommendations.map(({ id }) => id);
+  };
+  for (const [task, primary, companion] of [
+    ["Сделай мини CRM для записи поставщиков и других удобных вещей", "design-screen", "playwright"],
+    ["Проверь, можно ли с клавиатуры добавить поставщика на телефоне. Только ревью.", "review-screen", "playwright"],
+    ["Find the current API documentation for React useEffect", "library-docs", "context7"],
+  ]) {
+    const recommendations = await recommend(task);
+    assert.equal(recommendations[0], primary, task);
+    assert(recommendations.includes(companion), task);
+  }
+  assert.deepEqual(await recommend("Переведи описание договора на английский"), []);
+  const emptyTask = await client.callTool({ name: "recommend_tools", arguments: { task: " " } });
+  assert.equal(emptyTask.isError, true);
 
   const details = await client.callTool({ name: "get_entry", arguments: { id: "context7" } });
   assert.equal(details.structuredContent.entry.id, "context7");
@@ -119,7 +143,7 @@ const stdioClient = new Client({ name: "mtkit-stdio-smoke", version: "1.0.0" });
 try {
   await stdioClient.connect(new StdioClientTransport({ command: process.execPath, args: [executable], stderr: "inherit" }));
   await checkCatalog(stdioClient);
-  console.log("stdio: inventory parity, search, pagination, details, plan, and validation passed");
+  console.log("stdio: inventory parity, task recommendations, search, pagination, details, plan, and validation passed");
 } finally {
   await stdioClient.close();
 }

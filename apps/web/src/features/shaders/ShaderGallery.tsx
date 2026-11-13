@@ -48,14 +48,14 @@ export function ShaderGallery({ query, category, onQueryChange, onCategoryChange
       </header>
       <aside className="shader-sidebar" aria-labelledby="shader-filter-title">
         <div className="shader-filter-heading">
-          <h2 id="shader-filter-title">Фильтры</h2>
-          <Button type="button" variant="ghost" className="shader-filter-reset" disabled={!query && !category} onClick={resetFilters}>Сбросить</Button>
+          <h2 id="shader-filter-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M4 7h9m4 0h3M4 17h3m4 0h9M13 4v6M7 14v6" /></svg>Фильтры</h2>
+          <Button type="button" variant="ghost" className="shader-filter-reset" aria-label="Сбросить фильтры" disabled={!query && !category} onClick={resetFilters}>Сбросить</Button>
         </div>
-        <label className="shader-search">
-          <span className="search-icon" aria-hidden="true" />
-          <span className="sr-only">Поиск шейдеров</span>
-          <Input ref={searchRef} type="search" value={query} maxLength={100} placeholder="Поиск шейдеров" onChange={(event) => onQueryChange(event.target.value)} />
-        </label>
+        <div className="shader-search">
+          <svg className="shader-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
+          <Input ref={searchRef} type="search" aria-label="Поиск шейдеров" value={query} maxLength={100} placeholder="Поиск шейдеров" onChange={(event) => onQueryChange(event.target.value)} />
+          {query && <Button type="button" variant="ghost" className="shader-search-clear" aria-label="Очистить поиск" onClick={() => { onQueryChange(""); searchRef.current?.focus(); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="m7 7 10 10M7 17 17 7" /></svg></Button>}
+        </div>
         <div className="shader-category">
           <h3 id="shader-category-title">Категории</h3>
           <div className="shader-category-options" role="group" aria-labelledby="shader-category-title">
@@ -92,7 +92,11 @@ export function ShaderGallery({ query, category, onQueryChange, onCategoryChange
                         <h2>{preset.name}</h2>
                         <p>{preset.group}</p>
                       </div>
-                  <span className="shader-card-arrow" aria-hidden="true"><span>↗</span></span>
+                      <span className="shader-card-arrow" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" focusable="false">
+                          <path d="M6 18 18 6M6 6h12v12" />
+                        </svg>
+                      </span>
                     </div>
                   </a>
                 </Card>
