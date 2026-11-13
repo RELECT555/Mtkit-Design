@@ -1,0 +1,189 @@
+.shader-library {
+  --catalog-page-width: var(--content-page-width);
+  --shader-line: var(--catalog-line);
+  --shader-accent: var(--catalog-accent);
+  --shader-muted: var(--catalog-muted);
+  --shader-text: var(--catalog-text);
+}
+
+.shader-gallery {
+  display: grid;
+  grid-template-areas: "filters heading" "filters results";
+  grid-template-columns: clamp(214px, 16vw, 236px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: clamp(18px, 2vw, 30px);
+  row-gap: 20px;
+  padding-block: 29px 54px;
+}
+
+.shader-gallery-heading { grid-area: heading; }
+.shader-gallery-heading h1 { color: var(--shader-text); font-size: clamp(40px, 4.7vw, 64px); font-weight: 720; line-height: .99; letter-spacing: -.065em; }
+.shader-gallery-heading p { margin-top: 10px; color: var(--shader-muted); font-size: 15px; line-height: 1.5; }
+.shader-sidebar { grid-area: filters; position: sticky; top: 16px; min-width: 0; padding: 16px; border: 1px solid var(--shader-line); border-radius: 12px; background: var(--catalog-surface); }
+.shader-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.shader-sidebar h2 { color: var(--shader-text); font-size: 16px; font-weight: 650; text-wrap: balance; }
+#main .shader-filter-reset { height: auto; min-height: 32px; padding: 4px; background: transparent; color: var(--shader-accent); font-size: 12px; }
+#main .shader-filter-reset:disabled { color: var(--shader-muted); opacity: .45; }
+.shader-search { display: flex; align-items: center; gap: 9px; padding-inline: 11px; border: 1px solid var(--shader-line); border-radius: 7px; background: var(--catalog-inset); }
+.shader-search:focus-within { border-color: var(--shader-accent); outline: 1px solid var(--shader-accent); outline-offset: 2px; }
+.shader-search .search-icon { width: 12px; height: 12px; }
+.shader-search .search-icon::after { top: 8px; left: 8px; width: 5px; }
+#main .shader-search input { width: 100%; min-width: 0; height: 44px; padding: 0; border: 0; outline: none; background: transparent; color: var(--shader-text); box-shadow: none; font-size: 14px; }
+.shader-search input::placeholder { color: var(--shader-muted); }
+.shader-category { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--shader-line); }
+.shader-category h3 { margin-bottom: 10px; color: var(--shader-muted); font-size: 12px; font-weight: 600; }
+.shader-category-options { display: grid; gap: 5px; }
+#main .shader-category-options button { display: flex; justify-content: start; gap: 10px; width: 100%; min-width: 0; min-height: 44px; height: auto; padding: 9px 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--shader-muted); font-size: 14px; font-weight: 500; }
+#main .shader-category-options button:hover { background: var(--catalog-panel); color: var(--shader-text); }
+#main .shader-category-options button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--shader-accent) 35%, var(--shader-line)); background: color-mix(in srgb, var(--shader-accent) 10%, var(--catalog-surface)); color: var(--shader-accent); }
+.shader-category-icon { width: 17px; height: 17px; flex: none; }
+.shader-category-label { min-width: 0; }
+.shader-category-count { display: grid; place-items: center; flex: none; min-width: 23px; height: 23px; margin-left: auto; padding-inline: 5px; border-radius: 5px; background: var(--catalog-inset); color: var(--shader-muted); font: 11px var(--catalog-mono); font-variant-numeric: tabular-nums; }
+.shader-category-options button[aria-pressed="true"] .shader-category-count { background: var(--shader-accent); color: var(--catalog-accent-ink); }
+.shader-empty p { color: var(--shader-muted); font-size: 14px; text-wrap: pretty; }
+
+.shader-gallery-main { grid-area: results; min-width: 0; }
+.shader-gallery-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 38px; margin-bottom: 10px; color: var(--shader-muted); font: 12px var(--catalog-mono); }
+#main .shader-preview-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; height: auto; padding: 5px 8px; background: transparent; color: var(--shader-muted); font: 12px var(--catalog-mono); }
+#main .shader-preview-toggle:hover { color: var(--shader-accent); }
+.shader-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: clamp(14px, 1.6vw, 22px); padding: 0; margin: 0; list-style: none; }
+.shader-grid li { min-width: 0; }
+#main .shader-card { position: relative; display: block; min-width: 0; padding: 0; border: 1px solid var(--shader-line); border-radius: 11px; background: var(--catalog-surface); box-shadow: none; }
+.shader-card::after { position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 14px 28px -12px #0008, 0 0 22px -9px var(--shader-accent); opacity: 0; pointer-events: none; content: ""; }
+#main .shader-card:has(.shader-card-link:focus-visible) { border-color: var(--shader-accent); }
+.shader-card-link { display: block; overflow: hidden; border-radius: 10px; text-decoration: none; }
+.shader-card-link:focus-visible { outline: 2px solid var(--shader-accent); outline-offset: 4px; }
+.shader-card-preview { position: relative; isolation: isolate; overflow: hidden; aspect-ratio: 3 / 2; border-bottom: 1px solid var(--shader-line); background: var(--catalog-inset); }
+.shader-card-preview::after { position: absolute; inset: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--shader-accent) 12%, transparent), transparent 60%); opacity: 0; pointer-events: none; content: ""; }
+.shader-card-caption { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; }
+.shader-card-caption h2 { color: var(--shader-text); font-size: 16px; font-weight: 650; letter-spacing: -.02em; }
+.shader-card-caption p { margin-top: 3px; color: var(--shader-muted); font-size: 12px; }
+.shader-card-arrow { display: grid; flex: none; width: 29px; height: 29px; place-items: center; border: 1px solid var(--shader-line); border-radius: 6px; color: var(--shader-muted); font-size: 15px; }
+.shader-card-arrow > span { display: block; }
+.shader-card-link:focus-visible .shader-card-arrow { border-color: var(--shader-accent); color: var(--shader-accent); }
+
+@media (hover: hover) and (pointer: fine) {
+  #main .shader-card:has(.shader-card-link:hover) { border-color: var(--shader-accent); }
+  .shader-card-link:hover .shader-card-arrow { border-color: var(--shader-accent); background: color-mix(in srgb, var(--shader-accent) 12%, transparent); color: var(--shader-accent); }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  #main .shader-card { transition: transform 240ms var(--motion-out), border-color 180ms ease-out; }
+  .shader-card::after, .shader-card-preview::after { transition: opacity 240ms ease-out; }
+  .shader-card-preview .shader-frame { transition: transform 320ms var(--motion-out); }
+  .shader-card-arrow { transition: background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out; }
+  .shader-card-arrow > span { transition: transform 240ms var(--motion-out); }
+  #main .shader-card:has(.shader-card-link:hover:not(:focus-visible)) { transform: translateY(-4px); }
+  .shader-card:has(.shader-card-link:hover:not(:focus-visible))::after,
+  .shader-card-link:hover:not(:focus-visible) .shader-card-preview::after { opacity: 1; }
+  .shader-card-link:hover:not(:focus-visible) .shader-frame { transform: scale(1.035); }
+  .shader-card-link:hover:not(:focus-visible) .shader-card-arrow > span { transform: translate(2px, -2px); }
+  #main .shader-card:has(.shader-card-link:active:not(:focus-visible)) { transform: translateY(-1px); transition-duration: 100ms; }
+  .shader-card-link:active:not(:focus-visible) .shader-frame { transform: scale(1.015); transition-duration: 100ms; }
+}
+.shader-empty { display: grid; justify-items: start; gap: 12px; padding: 22px; border: 1px solid var(--shader-line); border-radius: 11px; background: var(--catalog-surface); }
+.shader-empty h2 { color: var(--shader-text); font-size: 16px; }
+
+.shader-studio { min-width: 0; padding: 35px 0 42px; }
+.shader-heading { margin-bottom: 26px; }
+.shader-crumb { display: flex; gap: 9px; margin-bottom: 13px; color: var(--shader-muted); font: 12px var(--catalog-mono); }
+.shader-crumb span { color: var(--shader-accent); }
+.shader-crumb a { color: var(--shader-accent); text-underline-offset: 3px; }
+.shader-heading h1 { color: var(--shader-text); font-size: clamp(36px, 4.3vw, 63px); font-weight: 690; line-height: 1; letter-spacing: -.065em; }
+.shader-description { margin-top: 13px; color: var(--shader-muted); font-size: 15px; line-height: 1.55; }
+.shader-workbench { display: block; min-width: 0; }
+.shader-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--shader-line); }
+#main .shader-tabs { display: flex; flex-wrap: wrap; align-items: center; width: auto; height: auto; gap: 18px; padding: 0; border: 0; border-radius: 0; background: none; }
+#main .shader-tabs button { min-height: 41px; height: auto; flex: initial; padding: 0 5px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--shader-muted); box-shadow: none; font-size: 14px; }
+#main .shader-tabs button[data-state="active"] { border-bottom-color: var(--shader-accent); color: var(--shader-text); }
+#main .shader-tabs button:hover { color: var(--shader-text); }
+.shader-filename { padding-bottom: 12px; color: var(--shader-muted); font-size: 12px; overflow-wrap: anywhere; }
+.shader-tab-content { display: block; min-width: 0; margin-top: 14px; }
+.shader-tab-content:is([hidden], [data-state="inactive"]) { display: none; }
+
+.shader-preview { position: relative; isolation: isolate; width: 100%; min-height: 260px; max-height: 474px; aspect-ratio: 2.05; overflow: hidden; border: 1px solid var(--shader-line); border-radius: 10px; background: var(--catalog-inset); }
+.shader-preview:fullscreen { width: 100%; height: 100%; max-height: none; aspect-ratio: auto; border: 0; border-radius: 0; }
+.shader-frame, .shader-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.shader-frame { background: radial-gradient(ellipse at 33% 39%, color-mix(in srgb, var(--shader-primary) 31%, transparent), transparent 54%), radial-gradient(ellipse at 72% 61%, color-mix(in srgb, var(--shader-secondary) 34%, var(--catalog-inset)), var(--catalog-inset) 73%); }
+.shader-frame:not([data-renderer="ready"]) canvas { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .shader-frame[data-renderer="ready"] canvas { transition: opacity 150ms var(--motion-out); }
+}
+.shader-fallback { position: absolute; top: 14px; left: 14px; z-index: 2; max-width: calc(100% - 28px); padding: 6px 8px; border: 1px solid var(--shader-line); border-radius: 5px; background: var(--catalog-surface); color: var(--shader-text); font-size: 12px; }
+.shader-preview-tools { position: absolute; z-index: 2; display: flex; flex-wrap: wrap; justify-content: end; right: 11px; bottom: 11px; left: 11px; gap: 5px; }
+#main .shader-preview-tools button, #main .shader-controls-heading button, #main .shader-empty button, #main .shader-code-toolbar button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; height: auto; padding: 5px 10px; border: 1px solid var(--shader-line); border-radius: 6px; background: var(--catalog-inset); color: var(--shader-text); font-size: 12px; font-weight: 620;
+}
+#main .shader-preview-tools button { min-width: 36px; background: color-mix(in srgb, var(--catalog-inset) 91%, transparent); }
+#main .shader-preview-tools button:hover, #main .shader-preview-tools button[aria-pressed="true"], #main .shader-controls-heading button:enabled:hover, #main .shader-empty button:hover { border-color: var(--shader-accent); }
+.shader-content-demo { position: absolute; z-index: 1; inset: 0; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 15px 16px 47px; background: #100b1766; color: #fff7f7; text-align: center; pointer-events: none; }
+.shader-content-demo p { font: 12px var(--catalog-mono); }
+.shader-content-demo strong { font-size: clamp(29px, 5vw, 65px); line-height: 1; letter-spacing: -.06em; }
+.shader-content-demo span { font-size: 13px; }
+
+.shader-controls { margin-top: 12px; padding: 12px 17px 17px; border: 1px solid var(--shader-line); border-radius: 9px; background: var(--catalog-surface); }
+.shader-interaction { margin-top: 9px; color: var(--shader-muted); font-size: 12px; line-height: 1.5; }
+.shader-image-control { display: grid; gap: 8px; margin-top: 16px; padding: 14px 17px; border: 1px solid var(--shader-line); border-radius: 9px; background: var(--catalog-surface); }
+.shader-image-control label { display: grid; gap: 8px; min-width: 0; color: var(--shader-text); font-size: 13px; }
+.shader-image-control input { display: block; width: 100%; min-width: 0; color: var(--shader-muted); font: inherit; }
+.shader-image-control input::file-selector-button { min-height: 36px; margin-right: 12px; padding: 5px 10px; border: 1px solid var(--shader-line); border-radius: 6px; background: var(--catalog-inset); color: var(--shader-text); font: inherit; cursor: pointer; }
+.shader-image-control p { color: var(--shader-muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.shader-original { position: absolute; inset: 0; display: grid; place-items: center; background: #06050a; pointer-events: none; }
+.shader-original img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+.shader-original[data-fit="contain"] img { width: 90%; height: 90%; object-fit: contain; }
+#main .shader-image-reset { justify-self: start; height: auto; min-height: 36px; padding: 5px 0; color: var(--shader-accent); font-size: 12px; }
+.shader-code-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#main .shader-code-actions button:first-child { background: transparent; color: var(--shader-text); border-color: var(--shader-line); }
+#main .shader-preview-tools button:disabled { opacity: .45; cursor: default; }
+.shader-controls-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+.shader-controls-heading h2 { color: var(--shader-text); font-size: 16px; letter-spacing: -.025em; }
+#main .shader-controls-heading button { min-height: 32px; }
+#main .shader-controls-heading button:disabled { opacity: .45; }
+.shader-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(120px, .65fr); gap: clamp(14px, 3vw, 40px); }
+.shader-slider { display: grid; grid-template-columns: 1fr auto; align-items: start; column-gap: 6px; row-gap: 3px; color: var(--shader-muted); font-size: 13px; }
+.shader-slider output { color: var(--shader-text); font: 12px var(--catalog-mono); white-space: nowrap; }
+.shader-slider input { grid-column: 1 / -1; width: 100%; height: 25px; margin: 0; accent-color: var(--shader-accent); cursor: pointer; }
+.shader-palettes { min-width: 0; padding: 0; margin: 0; border: 0; color: var(--shader-muted); font-size: 13px; }
+.shader-palettes legend { padding: 0; }
+.shader-palette-options { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.shader-palette { position: relative; display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid transparent; border-radius: 50%; cursor: pointer; }
+.shader-palette:has(input:checked) { border-color: var(--shader-accent); }
+.shader-palette:has(input:focus-visible) { outline: 2px solid var(--shader-accent); outline-offset: 2px; }
+.shader-palette input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.shader-palette > span:last-child { width: 22px; aspect-ratio: 1; border-radius: 50%; pointer-events: none; }
+
+.shader-code-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--shader-line); border-radius: 9px 9px 0 0; background: var(--catalog-surface); color: var(--shader-muted); font-size: 13px; }
+#main .shader-code-toolbar button { flex: none; border-color: var(--shader-accent); background: var(--shader-accent); color: var(--catalog-accent-ink); }
+#main .shader-code-toolbar button:hover { filter: brightness(1.1); }
+.shader-source { overflow: auto; max-height: 480px; padding: 16px; margin: 0; border: 1px solid var(--shader-line); border-top: 0; border-radius: 0 0 9px 9px; background: var(--catalog-inset); color: var(--shader-text); font: 12px/1.65 var(--catalog-mono); }
+.shader-prompt { color: var(--shader-text); font-size: 13px; line-height: 1.72; white-space: pre-wrap; overflow-wrap: anywhere; }
+.shader-code-tip { margin-top: 12px; color: var(--shader-muted); font-size: 13px; line-height: 1.55; }
+.shader-code-tip code { color: var(--shader-text); overflow-wrap: anywhere; }
+.shader-feedback { margin-top: 10px; color: var(--shader-accent); font-size: 13px; }
+.shader-feedback:empty { margin-top: 0; }
+
+@media (max-width: 960px) {
+  .shader-gallery { grid-template-areas: "heading" "filters" "results"; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .shader-sidebar { position: static; padding: 12px; }
+  .shader-category-options { grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr)); }
+}
+
+@media (max-width: 740px) {
+  .shader-gallery { padding-block: 24px 34px; }
+  .shader-category { margin-top: 10px; padding-top: 9px; }
+  .shader-category-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #main .shader-category-options button { gap: 8px; font-size: 13px; padding-inline: 8px; }
+  #main .shader-category-options button:first-child { grid-column: 1 / -1; }
+  .shader-studio { padding: 21px 0 28px; }
+  .shader-heading { margin-bottom: 17px; }
+  .shader-preview { min-height: 235px; }
+  .shader-settings { gap: 13px; }
+}
+
+@media (max-width: 460px) {
+  .shader-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shader-palettes { grid-column: 1 / -1; }
+  .shader-toolbar { gap: 5px; }
+  #main .shader-tabs { gap: 8px; }
+  .shader-code-toolbar { flex-wrap: wrap; }
+}

@@ -1,0 +1,81 @@
+.site-layout { display: flex; flex-direction: column; min-height: 100dvh; }
+.site-content { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.site-content > main { flex: 1; min-width: 0; }
+
+.site-header {
+  border-bottom: 1px solid var(--catalog-line);
+  background: var(--catalog-inset);
+}
+
+.site-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding-block: 8px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--catalog-muted);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-nav svg { flex: none; width: 16px; height: 16px; }
+.site-nav a:not(.site-connect):hover { background: var(--catalog-surface); color: var(--catalog-text); }
+.site-nav a[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--catalog-accent) 34%, var(--catalog-line));
+  background: color-mix(in srgb, var(--catalog-accent) 10%, var(--catalog-inset));
+  color: var(--catalog-accent);
+  font-weight: 650;
+}
+
+.site-nav-connect { margin-inline-start: 8px; }
+.site-nav a.site-connect {
+  height: auto;
+  border-color: var(--catalog-line);
+  background: var(--catalog-surface);
+  color: var(--catalog-text);
+}
+.site-connect span { color: var(--catalog-accent); }
+.site-nav a.site-connect:hover { border-color: var(--catalog-accent); }
+
+@media (max-width: 920px) {
+  .site-header-inner { flex-direction: column; align-items: stretch; gap: 8px; }
+  .site-header .wordmark { align-self: start; font-size: 17px; }
+  .site-header .brand-mark { width: 28px; }
+  .site-nav { justify-content: space-between; flex-wrap: wrap; }
+}
+
+@media (max-width: 650px) {
+  .site-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .site-nav-connect { margin: 0; }
+  .site-nav a { gap: 5px; padding-inline: 4px; font-size: 12px; }
+  .site-nav svg { width: 14px; height: 14px; }
+}
+
+@media (max-width: 370px) {
+  .site-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

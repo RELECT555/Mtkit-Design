@@ -1,0 +1,109 @@
+# MTKit Design
+
+Каталог навыков и MCP-серверов для React, TypeScript и `@mtkit/ui`. Сайт и MCP используют одни и те же карточки и планы установки для Codex, Claude Code, Cursor и VS Code с Copilot.
+
+## Установка плагина Codex
+
+Понадобятся Codex CLI, Node.js 22.12 или новее, npm и `tar`. Из корня репозитория выполни:
+
+```sh
+npm ci
+node scripts/install.mjs
+```
+
+Открой новый чат Codex в папке приложения. Например, попроси «Найди в MTKit Catalog инструменты для проверки доступности React-приложения». В списке навыков плагина можно выбрать `design-screen` для нового экрана, `review-screen` для проверки или `library-docs` для справки по API.
+
+При первом использовании Playwright MCP может попросить установить браузер. Выполни установку через инструмент Playwright или используй предложенную им команду.
+
+Установщик собирает MCP-сервер и скачивает навыки с ревизий из [external-skills.json](packages/catalog/external-skills.json). После проверки состава он создаёт локальный манифест marketplace и регистрирует плагин в Codex. Запускай его после клонирования и обновления репозитория. Команда `node scripts/install.mjs --prepare-only` скачивает навыки для локального просмотра.
+
+Инструкции для агента написаны на английском. Запросы можно писать на русском, а язык интерфейса определяется локализацией приложения. [Справочник frontend-навыков](plugins/mtkit-design/skills/design-screen/references/frontend-skills.md) помогает выбрать нужные навыки, включая подборку из [Design Bookmark](https://designbookmark.com/skills). Некоторым внешним скриптам нужны дополнительные инструменты: например, UI UX Pro Max использует Python 3, а скрипт Design Taste требует Node.js 22+.
+
+Context7 подключается к официальному MCP endpoint. Для приватных пакетов MTKit используй типы и документацию из Azure Artifacts. Инструменты `uimax`, `node_repl` и встроенные браузерные плагины зависят от окружения Codex. Используй их, если они уже настроены. Для отдельного сценария Playwright CLI доступен `npm install -g @playwright/cli@0.1.24`.
+
+## Подключение каталога отдельно
+
+Если плагин уже установлен, каталог доступен в нём через stdio. Для отдельного подключения по HTTP собери и запусти локальный сервер:
+
+```sh
+npm ci
+npm run catalog:build
+npm run catalog:serve
+```
+
+Для Codex зарегистрируй сервер в другом терминале и открой новый чат:
+
+```sh
+codex mcp add mtkit_catalog --url http://127.0.0.1:4387/mcp
+```
+
+Для остальных клиентов выбери агента в разделе «Подключите своего агента» на сайте. Добавь сгенерированный сервер в `mcpServers` в корне рабочего проекта. Если конфиг уже есть, добавь запись в существующий объект.
+
+| Клиент | Конфиг MCP | Папка навыков проекта |
+| --- | --- | --- |
+| [Claude Code](https://code.claude.com/docs/en/mcp) | `.mcp.json` | `.claude/skills/` |
+| [Cursor](https://cursor.com/docs/mcp) | `.cursor/mcp.json` | `.cursor/skills/` |
+| [VS Code с Copilot](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) | `.mcp.json` | `.github/skills/` |
+
+Открой карточку инструмента и выбери клиента. Для MCP карточка покажет конфиг и при необходимости команды запуска. Для навыка она покажет, какую папку целиком скопировать в рабочий проект. Перед копированием внешнего навыка `node scripts/install.mjs --prepare-only` готовит набор навыков из закреплённых ревизий.
+
+Если порт занят, передай другой через `npm run catalog:serve -- --port 4388` и используй тот же порт в URL. `list_categories` возвращает категории и счётчики, `search_entries` ищет по-русски и по-английски, `get_entry` показывает источник, требования и доступ. Для `plan_install` передай `client` со значением `codex`, `claude-code`, `cursor` или `vscode`. Без `client` возвращается план для Codex. Полный список доступен как MCP-ресурс `mtkit://catalog/inventory`.
+
+`npm run catalog:check` проверяет типы. `npm run catalog:inventory` сверяет карточки с составом плагина. После `npm run catalog:build` команда `npm run catalog:smoke` проверяет stdio, локальный HTTP и режим командного сервера.
+
+## Запуск сайта
+
+| Папка | Назначение |
+| --- | --- |
+| `apps/web` | React-приложение на MTKit с главной страницей `/` и каталогом `/catalog/` |
+| `packages/catalog` | Общие карточки, поиск, ссылки и планы установки |
+| `packages/mcp` | Сервер каталога по stdio и Streamable HTTP |
+| `plugins/mtkit-design` | Пакет Codex с MCP и навыками |
+
+Сайт собирается в статические файлы и использует каталог на стороне браузера. Пакеты каталога и MCP устанавливаются через корневой npm workspace. У сайта отдельный lockfile, чтобы для установки плагина было достаточно публичных зависимостей. Границы пакетов и проверки описаны в [документации по архитектуре](docs/architecture.md).
+
+Сайт использует React 19 и `@mtkit/ui@1.1.1` из приватного Azure Artifacts. Адрес feed задан в проектных `.npmrc`. На Windows при `E401` выполни из корня репозитория:
+
+```powershell
+vsts-npm-auth -C .npmrc -R -F
+npm view @mtkit/ui@1.1.1 version
+```
+
+Если помощника ещё нет, установи его командой `npm install -g vsts-npm-auth --registry https://registry.npmjs.org/`. При входе используй учётную запись с правом **Feed Reader** на `mt-packages`. Если `401` повторится, сравни URL из **Artifacts → mt-packages → Connect to feed → npm** со значением в обоих `.npmrc`. При совпадении URL проверь право чтения у владельца feed. После успешной проверки версии:
+
+```sh
+npm --prefix apps/web ci
+npm run web:dev
+```
+
+Открой адрес из вывода Vite. `npm run web:build` собирает сайт в `apps/web/dist`, `npm run web:preview` запускает локальное превью. Для публикации размести содержимое `apps/web/dist` в корне статического хоста.
+
+## Развёртывание
+
+Для командного доступа MCP можно запустить на корпоративном Linux-сервере за HTTPS. [Инструкция по MCP](docs/deploy-mcp.md) включает сборку контейнера, проверку и подключение клиентов.
+
+Веб-приложение можно разместить в Azure Static Web Apps. [Шаблон Azure Pipelines](deploy/azure-static-web-app.yml) собирает сайт с доступом к закрытому npm feed и публикует статические файлы. Параметры пайплайна описаны в [инструкции для Azure](docs/deploy-web.md).
+
+## Подключение пакетов к приложению
+
+Плагин устанавливается в Codex, а UI-пакеты подключаются в приложение. Для нового приложения понадобятся React и React DOM версии 19. В существующем проекте сначала проверь совместимость. Установка пакетов требует доступа к Azure Artifacts.
+
+Добавь строку для scope в проектный `.npmrc` рядом с `package.json`. Публичные пакеты продолжат идти через основной реестр проекта.
+
+```ini
+@mtkit:registry=https://pkgs.dev.azure.com/medipalprojects/_packaging/mt-packages/npm/registry/
+```
+
+На Windows авторизуйся в feed. Первую команду выполни, если помощник ещё не установлен.
+
+```powershell
+npm install -g vsts-npm-auth --registry https://registry.npmjs.org/
+vsts-npm-auth -C .npmrc -R
+npm install --save-exact @mtkit/ui@1.1.1
+```
+
+Если нужна canvas-таблица и метаданные версии подтверждают совместимость, добавь `npm install --save-exact @mtkit/data-grid-table@1.1.8`. Инструкция по стилям и проверке пакетов лежит в [справочнике MTKit](plugins/mtkit-design/skills/design-screen/references/mtkit.md).
+
+## Проверка на пилотном экране
+
+Запусти одну и ту же задачу в двух новых чатах на одинаковой версии приложения, один раз на русском и один раз на английском. Для проверки автоматического выбора не указывай название навыка. Сравни, выбрал ли Codex `design-screen`, использовал ли установленный MTKit и локальные компоненты и прошёл ли основное действие на десктопе и телефоне. Проверь, что экран вписался в существующую тему и локализацию. Отдельным запросом проверь `review-screen` в режиме «только ревью» и убедись, что файлы приложения не изменились.

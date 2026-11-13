@@ -1,0 +1,203 @@
+[
+  {
+    "repository": "Leonxlnx/unlazy",
+    "revision": "16671491f6679ad9378f52604d3bc2415b4120c7",
+    "skills": {
+      "unlazy": "."
+    }
+  },
+  {
+    "repository": "mohi-devhub/antivibe",
+    "revision": "9991d12ec52bc0b90eeab893fef27398be1ef616",
+    "skills": {
+      "antivibe": "."
+    }
+  },
+  {
+    "repository": "Neeeophytee/finding-unknowns-skills",
+    "revision": "ca5696a0f08d2de6b2997fff1d6cc05c3ed587cc",
+    "skills": {
+      "agent-interface-design": "skills/agent-interface-design",
+      "assumption-test": "skills/assumption-test",
+      "blindspot-pass": "skills/blindspot-pass",
+      "brainstorm-prototypes": "skills/brainstorm-prototypes",
+      "change-quiz": "skills/change-quiz",
+      "context-audit": "skills/context-audit",
+      "implementation-notes": "skills/implementation-notes",
+      "implementation-plan": "skills/implementation-plan",
+      "interview-me": "skills/interview-me",
+      "pitch-packager": "skills/pitch-packager",
+      "progressive-disclosure": "skills/progressive-disclosure",
+      "reference-hunt": "skills/reference-hunt",
+      "regression-proof": "skills/regression-proof",
+      "test-blindspots": "skills/test-blindspots"
+    }
+  },
+  {
+    "repository": "anthropics/skills",
+    "revision": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+    "skills": {
+      "frontend-design": "skills/frontend-design",
+      "docx": "skills/docx",
+      "pdf": "skills/pdf",
+      "pptx": "skills/pptx",
+      "xlsx": "skills/xlsx"
+    }
+  },
+  {
+    "repository": "shadcn/ui",
+    "revision": "dd41d19e2f80ff6891951f7ced74c2c9a650b065",
+    "skills": {
+      "shadcn": "skills/shadcn"
+    }
+  },
+  {
+    "repository": "shadcn/improve",
+    "revision": "cac56e1ebd3c279aa9153616cfeac7b174ab90f9",
+    "skills": {
+      "improve": "skills/improve"
+    }
+  },
+  {
+    "repository": "Serg2000Mr/dual-review-file-based",
+    "revision": "633f07629f30379566f7da7e13be32ab9eff35ec",
+    "skills": {
+      "claude-dual-review-file-based": "codex"
+    }
+  },
+  {
+    "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
+    "revision": "6ae86f61f520d6ca229d2f40e070410638c908c5",
+    "skills": {
+      "ui-ux-pro-max": ".claude/skills/ui-ux-pro-max",
+      "design-system": ".claude/skills/design-system",
+      "ui-styling": ".claude/skills/ui-styling"
+    }
+  },
+  {
+    "repository": "Leonxlnx/taste-skill",
+    "revision": "f6b76575f949707b4e3c37cd86cb44b0b98643e8",
+    "skills": {
+      "design-taste-frontend": "skills/taste-skill"
+    }
+  },
+  {
+    "repository": "nutlope/hallmark",
+    "revision": "04977e15f3dfd6ee4b74c887dac3eb52665d6c92",
+    "skills": {
+      "hallmark": "skills/hallmark"
+    }
+  },
+  {
+    "repository": "pbakaus/impeccable",
+    "revision": "c4cd1924c389f68d37c687d9c2bbf13f12547c41",
+    "skills": {
+      "impeccable": ".agents/skills/impeccable"
+    }
+  },
+  {
+    "repository": "microsoft/playwright-cli",
+    "revision": "b21724888b8100b05ef8dee3a92f2bb03bf4dcde",
+    "skills": {
+      "playwright-cli": "skills/playwright-cli"
+    }
+  },
+  {
+    "repository": "emilkowalski/skills",
+    "revision": "f7ce8c02d6e3c8f0d980a44c57bcc41a40254349",
+    "skills": {
+      "emil-design-eng": "skills/emil-design-eng",
+      "review-animations": "skills/review-animations",
+      "improve-animations": "skills/improve-animations",
+      "find-animation-opportunities": "skills/find-animation-opportunities",
+      "mobile-native": "skills/mobile-native",
+      "pick-ui-library": "skills/pick-ui-library",
+      "break-ui": "skills/break-ui",
+      "prototype": "skills/prototype"
+    }
+  },
+  {
+    "repository": "addyosmani/web-quality-skills",
+    "revision": "afa8da942115f2961fdbfa80807ea0b232ff6c00",
+    "skills": {
+      "web-quality-audit": "skills/web-quality-audit",
+      "accessibility": "skills/accessibility",
+      "performance": "skills/performance",
+      "core-web-vitals": "skills/core-web-vitals",
+      "seo": "skills/seo"
+    }
+  },
+  {
+    "repository": "vercel-labs/agent-skills",
+    "revision": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+    "skills": {
+      "vercel-react-best-practices": "skills/react-best-practices",
+      "vercel-composition-patterns": "skills/composition-patterns",
+      "deploy-to-vercel": "skills/deploy-to-vercel"
+    }
+  },
+  {
+    "repository": "meodai/skill.color-expert",
+    "revision": "5bf7c7704d56bccc6aeea38c36bcf449abe56a6c",
+    "skills": {
+      "color-expert": "."
+    }
+  },
+  {
+    "repository": "greensock/gsap-skills",
+    "revision": "aed9cfd3277740755f6bfc1155c7aa645403b760",
+    "skills": {
+      "gsap-core": "skills/gsap-core",
+      "gsap-react": "skills/gsap-react",
+      "gsap-timeline": "skills/gsap-timeline",
+      "gsap-scrolltrigger": "skills/gsap-scrolltrigger",
+      "gsap-performance": "skills/gsap-performance",
+      "gsap-plugins": "skills/gsap-plugins",
+      "gsap-utils": "skills/gsap-utils",
+      "gsap-frameworks": "skills/gsap-frameworks"
+    }
+  },
+  {
+    "repository": "ibelick/ui-skills",
+    "revision": "ba966a3aaa4080ab1836d350f3131584e2d4243a",
+    "skills": {
+      "baseline-ui": "skills/baseline-ui",
+      "improve-ui": "skills/improve-ui",
+      "fixing-accessibility": "skills/fixing-accessibility",
+      "fixing-metadata": "skills/fixing-metadata",
+      "fixing-motion-performance": "skills/fixing-motion-performance"
+    }
+  },
+  {
+    "repository": "jakubkrehel/make-interfaces-feel-better",
+    "revision": "35545ea1512ad59fa463e6b1f95ca9c052981fe6",
+    "skills": {
+      "make-interfaces-feel-better": "skills/make-interfaces-feel-better"
+    }
+  },
+  {
+    "repository": "bergside/awesome-design-skills",
+    "revision": "f631a09b4fcc0166f2e2c1a8c81906ef680c57e8",
+    "skills": {
+      "clean": "skills/clean",
+      "contemporary": "skills/contemporary",
+      "editorial": "skills/editorial",
+      "minimal": "skills/minimal",
+      "premium": "skills/premium",
+      "professional": "skills/professional",
+      "sleek": "skills/sleek",
+      "spacious": "skills/spacious",
+      "bento": "skills/bento",
+      "corporate": "skills/corporate"
+    }
+  },
+  {
+    "repository": "jakubkrehel/skills",
+    "revision": "a72290d140249813898ba8648becf6415abcb059",
+    "skills": {
+      "better-interface": "skills/better-interface",
+      "build-design": "skills/build-design",
+      "variant": "skills/variant"
+    }
+  }
+]

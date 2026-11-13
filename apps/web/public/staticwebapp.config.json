@@ -1,0 +1,12 @@
+{
+  "routes": [
+    { "route": "/catalog", "rewrite": "/catalog/index.html" },
+    { "route": "/catalog/", "rewrite": "/catalog/index.html" },
+    { "route": "/shaders", "rewrite": "/shaders/index.html" },
+    { "route": "/shaders/", "rewrite": "/shaders/index.html" },
+    { "route": "/shaders/components", "rewrite": "/shaders/components/index.html" },
+    { "route": "/shaders/components/", "rewrite": "/shaders/components/index.html" },
+    { "route": "/logo", "rewrite": "/logo/index.html" },
+    { "route": "/logo/", "rewrite": "/logo/index.html" }
+  ]
+}
