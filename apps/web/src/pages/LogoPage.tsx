@@ -13,6 +13,18 @@ const models = {
 };
 type Model = keyof typeof models;
 
+const icons = {
+  download: "M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4",
+  model: "m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3ZM4 7.5l8 4.5 8-4.5M12 12v9",
+  minus: "M6 12h12",
+  plus: "M6 12h12M12 6v12",
+  reset: "M4 11a8 8 0 1 1 1.9 6M4 5v6h6",
+} as const;
+
+function LogoIcon({ name }: { name: keyof typeof icons }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[name]} /></svg>;
+}
+
 export function LogoPage() {
   const [selected, setSelected] = useState<Model>("logo");
   const [requested, setRequested] = useState(false);
@@ -23,6 +35,10 @@ export function LogoPage() {
   const sceneRef = useRef<ReturnType<typeof createLogoScene>>(undefined);
   const current = models[selected];
   const ready = requested && loaded === selected && !contextLost;
+  const hint = contextLost ? "3D-просмотр прерван. Рендер и скачивание доступны."
+    : failed ? "3D-модель не загрузилась. Попробуйте открыть её снова."
+    : ready ? "Поворачивайте модель перетаскиванием или стрелками."
+    : requested ? "Загружается 3D-модель…" : "";
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -71,18 +87,15 @@ export function LogoPage() {
   return (
     <Layout page="logo">
       <section className="page-container logo-page" aria-labelledby="logo-title">
-        <div className="logo-intro">
-          <div>
-            <h1 id="logo-title">Логотип <span>MTKit Design</span></h1>
-            <p>Рассмотрите объёмную модель и скачайте её в формате GLB.</p>
-          </div>
-          <a className="logo-download" href={current.url} download={current.filename}>Скачать GLB <span aria-hidden="true">↓</span></a>
-        </div>
+        <header className="logo-intro">
+          <h1 id="logo-title">Логотип <span>MTKit Design</span></h1>
+          <p>Выберите полный логотип или знак. Обе модели доступны в формате GLB.</p>
+        </header>
         <div className="logo-viewer">
           <div className="logo-toolbar">
-            <div className="switcher" role="group" aria-label="Вариант логотипа">
+            <div className="logo-variants" role="group" aria-label="Вариант логотипа">
               {(Object.keys(models) as Model[]).map((id) => (
-                <Button key={id} type="button" aria-pressed={selected === id} onClick={() => {
+                <Button key={id} type="button" variant="ghost" aria-pressed={selected === id} onClick={() => {
                   if (selected === id) return;
                   setFailed(false);
                   setLoaded(undefined);
@@ -90,14 +103,11 @@ export function LogoPage() {
                 }}>{models[id].label}</Button>
               ))}
             </div>
-            <div className="switcher logo-view-controls" role="group" aria-label="Управление 3D-моделью">
-              <Button type="button" aria-pressed={requested} onClick={toggleViewer}>3D-просмотр</Button>
-              <Button type="button" aria-label="Уменьшить" disabled={!ready} onClick={() => sceneRef.current?.zoom(1 / 1.2)}>−</Button>
-              <Button type="button" aria-label="Увеличить" disabled={!ready} onClick={() => sceneRef.current?.zoom(1.2)}>+</Button>
-              <Button type="button" disabled={!ready} onClick={() => sceneRef.current?.reset()}>Сбросить вид</Button>
-            </div>
+            <Button type="button" className="logo-toggle" aria-pressed={requested} aria-controls="logo-stage" onClick={toggleViewer}>
+              <LogoIcon name="model" /> 3D-просмотр
+            </Button>
           </div>
-          <div className="logo-stage" data-ready={ready || undefined} data-model={selected}>
+          <div id="logo-stage" className="logo-stage" data-ready={ready || undefined} data-model={selected} aria-busy={requested && loaded !== selected && !contextLost}>
             <img className="logo-poster" src={current.poster} alt={ready ? "" : current.label + " MTKit Design"} />
             {requested && <canvas
               ref={canvasRef}
@@ -116,11 +126,19 @@ export function LogoPage() {
               }}
             />}
           </div>
-          <p className="logo-hint" role="status">
-            {failed || contextLost
-              ? "Интерактивная модель недоступна. Можно посмотреть рендер и скачать GLB."
-              : ready ? "Перетащите модель или используйте стрелки, чтобы повернуть её." : requested ? "Загружается 3D-модель…" : ""}
-          </p>
+          <div className="logo-footer">
+            {requested ? (
+              <div className="logo-view-controls" role="group" aria-label="Масштаб и ракурс">
+                <Button type="button" variant="outline" aria-label="Уменьшить" title="Уменьшить" disabled={!ready} onClick={() => sceneRef.current?.zoom(1 / 1.2)}><LogoIcon name="minus" /></Button>
+                <Button type="button" variant="outline" aria-label="Увеличить" title="Увеличить" disabled={!ready} onClick={() => sceneRef.current?.zoom(1.2)}><LogoIcon name="plus" /></Button>
+                <Button type="button" variant="outline" aria-label="Сбросить вид" title="Сбросить вид" disabled={!ready} onClick={() => sceneRef.current?.reset()}><LogoIcon name="reset" /></Button>
+              </div>
+            ) : <code className="logo-filename">{current.filename}</code>}
+            <p className="logo-hint" role="status">{hint}</p>
+            <Button asChild variant="outline" className="logo-download">
+              <a href={current.url} download={current.filename}><LogoIcon name="download" /> Скачать GLB</a>
+            </Button>
+          </div>
         </div>
       </section>
     </Layout>
