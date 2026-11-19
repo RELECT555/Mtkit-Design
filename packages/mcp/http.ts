@@ -1,8 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
+import { pipeline } from "node:stream";
 import { hostHeaderValidation, localhostHostValidation, localhostOriginValidation, toNodeHandler } from "@modelcontextprotocol/node";
 import { createMcpHandler, type McpServerFactory } from "@modelcontextprotocol/server";
-import { catalogPath, parseHostedEndpoint } from "@mtkit-design/catalog";
+import { catalogPath, getEntry, parseHostedEndpoint } from "@mtkit-design/catalog";
+import { archivePathPattern, createSkillArchive, hasSkillFolder } from "./archive.js";
 
 interface HostedConfig {
   publicUrl: URL;
@@ -29,12 +31,23 @@ function hasBearerToken(authorization: string | undefined, expectedDigest: Buffe
   return token !== undefined && timingSafeEqual(createHash("sha256").update(token).digest(), expectedDigest);
 }
 
-export function serveHttp(factory: McpServerFactory, port: number, hosted?: HostedConfig) {
+export interface HttpOptions {
+  /** Folder with one subfolder per skill. Enables GET /skills/<id>.tar.gz when set. */
+  skillsDirectory?: string;
+  /** Called once the listening address is known, with the origin clients can reach. */
+  onListening?: (origin: string) => void;
+}
+
+const maxConcurrentArchives = 4;
+
+export function serveHttp(factory: McpServerFactory, port: number, hosted?: HostedConfig, options: HttpOptions = {}) {
   const host = hosted ? "0.0.0.0" : "127.0.0.1";
   const handler = createMcpHandler(factory);
   const handleRequest = toNodeHandler(handler, { maxRequestBodySize: 64 * 1024 });
   const validateHost = hosted ? hostHeaderValidation([hosted.publicUrl.hostname]) : localhostHostValidation();
   const validateLocalOrigin = localhostOriginValidation();
+
+  let activeArchives = 0;
 
   const http = createServer({ headersTimeout: 10_000, requestTimeout: 20_000 }, (request, response) => {
     const path = request.url?.split("?", 1)[0];
@@ -50,6 +63,38 @@ export function serveHttp(factory: McpServerFactory, port: number, hosted?: Host
         return;
       }
     } else if (!validateLocalOrigin(request, response)) return;
+
+    const archiveId = path === undefined ? undefined : archivePathPattern.exec(path)?.[1];
+    if (archiveId !== undefined && options.skillsDirectory !== undefined && (request.method === "GET" || request.method === "HEAD")) {
+      if (hosted && !hasBearerToken(request.headers.authorization, hosted.tokenDigest)) {
+        response.writeHead(401, { "WWW-Authenticate": 'Bearer realm="MTKit Catalog"', "Cache-Control": "no-store" }).end();
+        return;
+      }
+      if (getEntry(archiveId)?.kind !== "skill" || !hasSkillFolder(options.skillsDirectory, archiveId)) {
+        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Not found");
+        return;
+      }
+      if (activeArchives >= maxConcurrentArchives) {
+        response.writeHead(503, { "Retry-After": "5", "Cache-Control": "no-store" }).end();
+        return;
+      }
+      response.writeHead(200, {
+        "Content-Type": "application/gzip",
+        "Content-Disposition": `attachment; filename="${archiveId}.tar.gz"`,
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      if (request.method === "HEAD") {
+        response.end();
+        return;
+      }
+      activeArchives++;
+      pipeline(createSkillArchive(options.skillsDirectory, archiveId), response, (error) => {
+        activeArchives--;
+        if (error) console.error("MTKit Catalog could not finish a skill archive.", error.name);
+      });
+      return;
+    }
 
     if (path !== catalogPath) {
       response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Not found");
@@ -76,6 +121,7 @@ export function serveHttp(factory: McpServerFactory, port: number, hosted?: Host
     const address = http.address();
     if (address && typeof address === "object") {
       console.error(`MTKit Catalog is listening at http://${host}:${address.port}${catalogPath}`);
+      options.onListening?.(`http://127.0.0.1:${address.port}`);
     }
   });
 

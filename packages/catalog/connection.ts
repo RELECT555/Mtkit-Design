@@ -6,6 +6,8 @@ export const installClients = ["codex", "claude-code", "cursor", "vscode"] as co
 export type InstallClient = typeof installClients[number];
 export type ProjectClient = Exclude<InstallClient, "codex">;
 
+export const projectClients = ["claude-code", "cursor", "vscode"] as const satisfies readonly ProjectClient[];
+
 export const clientLabels: Record<InstallClient, string> = {
   codex: "Codex",
   "claude-code": "Claude Code",

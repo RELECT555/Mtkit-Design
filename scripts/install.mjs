@@ -70,7 +70,8 @@ async function prepareSource(source, entries, stage) {
     const paths = [...new Set(entries.map(({ path }) => (
       path === "." ? archiveRoot : `${archiveRoot}/${path}`
     )))];
-    await exec("tar", ["-xzf", archive, "-C", folder, ...paths], { timeout: 120_000 });
+    // Relative names keep GNU tar (Git Bash on Windows) from reading "C:" as a remote host.
+    await exec("tar", ["-xzf", "source.tar.gz", ...paths], { cwd: folder, timeout: 120_000 });
 
     for (const { name, path, marker } of entries) {
       const from = join(folder, archiveRoot, path);

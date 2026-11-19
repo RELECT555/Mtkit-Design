@@ -9,8 +9,10 @@ COPY packages/mcp/ packages/mcp/
 COPY plugins/mtkit-design/skills/design-screen/ plugins/mtkit-design/skills/design-screen/
 COPY plugins/mtkit-design/skills/review-screen/ plugins/mtkit-design/skills/review-screen/
 COPY plugins/mtkit-design/skills/library-docs/ plugins/mtkit-design/skills/library-docs/
-COPY scripts/build-catalog.mjs scripts/
+COPY scripts/build-catalog.mjs scripts/install.mjs scripts/skill-pack.mjs scripts/publish-skills.mjs scripts/project-rules.mjs scripts/
 COPY tsconfig.json ./
+# Downloads the pinned external skills from GitHub so install_skills can serve them.
+RUN node scripts/install.mjs --prepare-only
 RUN npm run catalog:check && npm run catalog:test && npm run catalog:build && npm run catalog:smoke
 
 FROM node:24-bookworm-slim AS runtime
@@ -18,6 +20,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 COPY --from=build /app/plugins/mtkit-design/dist/ ./
+# Full skill folders (with binary assets) for GET /skills/<id>.tar.gz.
+COPY --from=build /app/plugins/mtkit-design/skills/ ./skills/
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s CMD ["node", "-e", "fetch('http://127.0.0.1:'+process.env.PORT+'/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exitCode=1}).catch(()=>{process.exitCode=1})"]

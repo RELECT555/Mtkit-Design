@@ -9,6 +9,10 @@
 !packages/mcp/**
 !scripts/
 !scripts/build-catalog.mjs
+!scripts/install.mjs
+!scripts/skill-pack.mjs
+!scripts/publish-skills.mjs
+!scripts/project-rules.mjs
 !plugins/
 !plugins/mtkit-design/
 !plugins/mtkit-design/skills/

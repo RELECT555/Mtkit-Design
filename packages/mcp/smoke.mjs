@@ -52,10 +52,11 @@ async function checkCatalog(client) {
   assert.match(client.getInstructions() ?? "", /recommend_tools/);
   assert.match(client.getInstructions() ?? "", /get_skill/);
   assert.match(client.getInstructions() ?? "", /bootstrap_project/);
+  assert.match(client.getInstructions() ?? "", /install_skills/);
   assert(client.getServerCapabilities()?.tools);
   assert(client.getServerCapabilities()?.resources);
   const listing = await client.listTools();
-  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "get_entry", "get_skill", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
+  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "get_entry", "get_skill", "install_skills", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
   const bootstrapTool = listing.tools.find(({ name }) => name === "bootstrap_project");
   assert.equal(bootstrapTool.annotations?.readOnlyHint, true, "Remote bootstrap returns a client-side plan rather than writing project files");
   assert.equal(bootstrapTool.annotations?.destructiveHint, false);
@@ -105,6 +106,7 @@ async function checkCatalog(client) {
       assert(catalogEntries.some((entry) => entry.id === id && entry.name === name && entry.kind === kind));
       assert(reason);
     }
+    for (const { kind, installWith } of recommendations) assert.equal(installWith, kind === "skill" ? "install_skills" : "plan_install");
     return recommendations.map(({ id }) => id);
   };
   for (const [task, primary, companion] of [
@@ -138,6 +140,30 @@ async function checkCatalog(client) {
   ]) {
     const result = await client.callTool({ name: "get_skill", arguments: arguments_ });
     assert.equal(result.isError, true, `Invalid skill request must fail: ${JSON.stringify(arguments_)}`);
+  }
+
+  for (const [target, directory] of [["claude-code", ".claude/skills"], ["cursor", ".cursor/skills"], ["vscode", ".github/skills"]]) {
+    const response = await client.callTool({ name: "install_skills", arguments: { id: "design-screen", client: target } });
+    assert(!response.isError, `install_skills failed for ${target}`);
+    const { install } = response.structuredContent;
+    assert.equal(install.targetDirectory, `${directory}/design-screen`);
+    assert.equal(install.files[0].path, "SKILL.md");
+    assert.match(install.files[0].content, /@mtkit\/ui/);
+    assert.equal(install.page.nextOffset, null);
+    assert.equal(install.files.length, install.page.total);
+    assert.deepEqual(install.companionSkills, ["library-docs", "review-screen"]);
+    assert(install.files.every(({ path }) => !path.startsWith("/") && !path.includes("..")));
+    const text = response.content.filter(({ type }) => type === "text").map(({ text }) => text).join("\n");
+    assert.match(text, /"SKILL\.md"/, "Clients that only read text content must receive the files");
+  }
+  for (const arguments_ of [
+    { id: "context7", client: "claude-code" },
+    { id: "no-such-catalog-entry", client: "claude-code" },
+    { id: "design-screen", client: "codex" },
+    { id: "design-screen", client: "claude-code", offset: 999 },
+  ]) {
+    const result = await client.callTool({ name: "install_skills", arguments: arguments_ });
+    assert.equal(result.isError, true, `Invalid install request must fail: ${JSON.stringify(arguments_)}`);
   }
 
   const plan = await client.callTool({ name: "plan_install", arguments: { id: "context7" } });
@@ -221,6 +247,8 @@ try {
   await copyFile(executable, standaloneExecutable);
   await stdioClient.connect(new StdioClientTransport({ command: process.execPath, args: [standaloneExecutable], cwd: standalone, stderr: "inherit" }));
   await checkCatalog(stdioClient);
+  const stdioInstall = await stdioClient.callTool({ name: "install_skills", arguments: { id: "design-screen", client: "claude-code" } });
+  assert.equal(stdioInstall.structuredContent.install.archive, undefined, "stdio has no download endpoint, so files must come through the tool");
   assert.deepEqual(await readdir(standalone), ["catalog.cjs"], "Bootstrap must not create project rules on the server filesystem");
   console.log("Standalone stdio: bootstrap without server writes, initialization guidance, inventory, recommendations, skill references, install plans, and validation passed");
 } finally {
@@ -278,6 +306,31 @@ async function checkHttpValidation(address, extraHeaders = {}) {
   await unsupportedMethod.text();
 }
 
+async function checkArchives(client, address, { origin, bearer, headers }) {
+  const response = await client.callTool({ name: "install_skills", arguments: { id: "design-screen", client: "claude-code" } });
+  const { archive } = response.structuredContent.install;
+  assert.equal(archive.url, origin + "/skills/design-screen.tar.gz");
+  assert.equal(archive.authorization, bearer ? "bearer" : "none");
+  assert.equal(archive.extractDirectory, ".claude/skills");
+  assert.match(archive.commands.posix, /curl -fsSL/);
+  assert.match(archive.commands.powershell, /curl\.exe/);
+  assert.equal(archive.commands.posix.includes("MTKIT_MCP_TOKEN"), bearer, "The command must reference the token variable, never the secret");
+  assert(!JSON.stringify(response.structuredContent).includes(headers?.authorization?.slice(7) ?? "no-token"));
+
+  const url = new URL("/skills/design-screen.tar.gz", address);
+  const download = await fetch(url, { headers, signal: AbortSignal.timeout(10_000) });
+  assert.equal(download.status, 200);
+  assert.equal(download.headers.get("content-type"), "application/gzip");
+  assert.equal(download.headers.get("cache-control"), "no-store");
+  const bytes = Buffer.from(await download.arrayBuffer());
+  assert(bytes[0] === 0x1f && bytes[1] === 0x8b, "Archive must be gzip");
+  assert.equal((await fetch(url, { method: "HEAD", headers })).status, 200);
+  for (const path of ["/skills/context7.tar.gz", "/skills/no-such-skill.tar.gz", "/skills/design-screen.zip", "/skills/..%2f..%2fpackage.json"]) {
+    assert.equal((await fetch(new URL(path, address), { headers })).status, 404, path);
+  }
+  assert.equal((await fetch(url, { method: "POST", headers })).status, 404, "Archives are read-only");
+}
+
 function requestStatus(url, headers) {
   return new Promise((resolve, reject) => {
     const req = request(url, { headers, signal: AbortSignal.timeout(5_000) }, (response) => {
@@ -292,6 +345,7 @@ await withHttpServer(["--http", "--port", "0"], {}, async (address, client) => {
   await checkHttpValidation(address);
   await client.connect(new StreamableHTTPClientTransport(address));
   await checkCatalog(client);
+  await checkArchives(client, address, { origin: new URL(address).origin, bearer: false });
   const parallelResults = await Promise.all(catalogEntries.slice(0, 8).map(({ id }) => client.callTool({ name: "get_entry", arguments: { id } })));
   assert.deepEqual(parallelResults.map(({ structuredContent }) => structuredContent.entry.id), catalogEntries.slice(0, 8).map(({ id }) => id));
   assert.equal((await fetch(address, { headers: { origin: "https://unrelated.example" } })).status, 403);
@@ -322,5 +376,9 @@ await withHttpServer(["--hosted"], {
     requestInit: { headers: authorizedHeaders },
   }));
   await checkCatalog(client);
+  assert.equal((await fetch(new URL("/skills/design-screen.tar.gz", address))).status, 401, "Archives require the bearer token");
+  assert.equal((await fetch(new URL("/skills/design-screen.tar.gz", address), { headers: { authorization: `Bearer ${"0".repeat(64)}` } })).status, 401);
+  assert.equal(await requestStatus(new URL("/skills/design-screen.tar.gz", address), { host: "unrelated.example", authorization: `Bearer ${token}` }), 403);
+  await checkArchives(client, address, { origin: `https://${host}`, bearer: true, headers: { authorization: `Bearer ${token}` } });
   console.log("Hosted HTTP: health, Host and Origin guards, bearer authorization, inventory parity, and tools passed");
 });

@@ -16,6 +16,11 @@ const mcpConnections: Partial<Record<string, ToolConnection>> = {
   "chrome-devtools": { type: "stdio", command: "npx", args: ["--yes", "chrome-devtools-mcp@1.13.0", "--headless", "--isolated"] },
 };
 
+/** Skills whose instructions link to sibling skills and must be installed together. */
+export const skillCompanions: Readonly<Record<string, readonly string[]>> = {
+  "design-screen": ["library-docs", "review-screen"],
+};
+
 export const startLocalCatalog: readonly InstallStep[] = [
   { command: "npm", args: ["ci"], cwd: checkout },
   { command: "npm", args: ["run", "catalog:build"], cwd: checkout },
@@ -59,7 +64,7 @@ function projectPlan(entry: CatalogEntry, client: ProjectClient): InstallPlan | 
       from: `plugins/mtkit-design/skills/${name}/`,
       to: `${skillDirectories[client]}/${name}/`,
     });
-    const companions = entry.id === "design-screen" ? ["library-docs", "review-screen"] : [];
+    const companions = skillCompanions[entry.id] ?? [];
     return {
       ...base,
       steps: entry.sourcePath ? [] : [{ command: "node", args: ["scripts/install.mjs", "--prepare-only"], cwd: checkout }],

@@ -10,3 +10,4 @@ dist/
 !/plugins/mtkit-design/skills/design-screen/
 !/plugins/mtkit-design/skills/review-screen/
 !/plugins/mtkit-design/skills/library-docs/
+/packages/mcp/skill-pack.gz

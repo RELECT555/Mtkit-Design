@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/server";
-import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planBootstrap, planInstall, queryCatalog, recommendForTask } from "@mtkit-design/catalog";
+import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planBootstrap, planInstall, projectClients, queryCatalog, recommendForTask, skillCompanions, skillDirectories } from "@mtkit-design/catalog";
 import * as z from "zod/v4";
 import { version } from "./package.json";
-import { readSkill } from "./skills.js";
+import { readSkill, readSkillBundle } from "./skills.js";
 
 const inventoryUri = "mtkit://catalog/inventory";
 const readOnly = {
@@ -32,6 +32,7 @@ const recommendationOutput = z.object({
     title: z.string(),
     availability: z.enum(["bundled", "optional"]),
     reason: z.string(),
+    installWith: z.enum(["install_skills", "plan_install"]),
   })),
 });
 
@@ -49,10 +50,26 @@ function unknownEntry(id: string) {
   };
 }
 
-export function createCatalogServer() {
+/** Set by HTTP transports that serve skill archives; stdio has no download endpoint. */
+export interface CatalogOptions {
+  archive?: { origin: string; bearer: boolean; has(id: string): boolean };
+}
+
+function archiveCommands(origin: string, bearer: boolean, id: string, directory: string) {
+  const url = `${origin}/skills/${id}.tar.gz`;
+  const header = bearer ? ' -H "Authorization: Bearer $MTKIT_MCP_TOKEN"' : "";
+  const psHeader = bearer ? ' -H "Authorization: Bearer $env:MTKIT_MCP_TOKEN"' : "";
+  return {
+    url,
+    posix: `mkdir -p ${directory} && curl -fsSL${header} "${url}" | tar -xz -C ${directory}`,
+    powershell: `New-Item -ItemType Directory -Force ${directory} | Out-Null; $archive = Join-Path $env:TEMP "${id}.tar.gz"; curl.exe -fsSL${psHeader} "${url}" -o $archive; tar -xzf $archive -C ${directory}; Remove-Item $archive`,
+  };
+}
+
+export function createCatalogServer(options: CatalogOptions = {}) {
   const server = new McpServer(
     { name: "mtkit-catalog", version },
-    { instructions: "When MTKit is first used in an application project, call bootstrap_project for the current client. It returns the managed project rules and merge procedure. During authorized project setup, use the client's file tools to create or update only that block, preserve existing rules, and verify the result. Never write to the server filesystem as a substitute for client setup. For read-only or review-only work, follow the rules in-session and report setup as not persisted. Reuse a completed setup check for this project during the session. For TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short task description, then read selected installed skills or get_skill before applying them. Verify MCP tools in this client before using them; bundled means included in the plugin, not currently connected. Use plan_install for missing dependencies. Respect the user's constraints and preserve the project's @mtkit/ui version and API. Use search_entries for direct searches and mtkit://catalog/inventory for the complete inventory." },
+    { instructions: "When MTKit is first used in an application project, call bootstrap_project for the current client. It returns the managed project rules and merge procedure. During authorized project setup, use the client's file tools to create or update only that block, preserve existing rules, and verify the result. Never write to the server filesystem as a substitute for client setup. For read-only or review-only work, follow the rules in-session and report setup as not persisted. Reuse a completed setup check for this project during the session. For TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short task description, then read selected installed skills or get_skill before applying them. Verify MCP tools in this client before using them; bundled means included in the plugin, not currently connected. To add a selected skill to the project, call install_skills for this client and write the returned files with the client's file tools, only when the user wants it installed; use plan_install for MCP servers and other missing dependencies. Respect the user's constraints and preserve the project's @mtkit/ui version and API. Use search_entries for direct searches and mtkit://catalog/inventory for the complete inventory." },
   );
 
   server.registerResource("inventory", inventoryUri, {
@@ -89,7 +106,7 @@ export function createCatalogServer() {
 
   server.registerTool("recommend_tools", {
     title: "Recommend skills and MCP servers for a task",
-    description: "Choose relevant skills and MCP servers before working on a TypeScript frontend task. Pass the user's goal in natural language, including framework and constraints. Read selected installed skills or get_skill before applying them. Use get_entry for requirements and plan_install if setup is needed. Bundled means included in the plugin, not proof of installation or availability in this session. With no match, search_entries or inspect the inventory instead of guessing.",
+    description: "Choose relevant skills and MCP servers before working on a TypeScript frontend task. Pass the user's goal in natural language, including framework and constraints. Read selected installed skills or get_skill before applying them. Use get_entry for requirements. If a recommended skill is not installed, install_skills delivers its files; plan_install covers MCP servers. Bundled means included in the plugin, not proof of installation or availability in this session. With no match, search_entries or inspect the inventory instead of guessing.",
     inputSchema: z.strictObject({
       task: z.string().trim().min(1).max(2_000).describe("Short description of what the user wants to accomplish, in Russian or English."),
     }),
@@ -97,7 +114,7 @@ export function createCatalogServer() {
     annotations: readOnly,
   }, async ({ task }) => jsonResult({
     projectSetup: { tool: "bootstrap_project", instruction: "If MTKit project setup has not yet been checked in this session, request bootstrap_project for your client. Apply only during authorized setup; for read-only or review-only work follow its guidance in-session. Reuse an existing setup check." },
-    recommendations: recommendForTask(task).map(({ entry: { id, kind, name, title, availability }, reason }) => ({ id, kind, name, title, availability, reason })),
+    recommendations: recommendForTask(task).map(({ entry: { id, kind, name, title, availability }, reason }) => ({ id, kind, name, title, availability, reason, installWith: kind === "skill" ? "install_skills" as const : "plan_install" as const })),
   }));
 
   server.registerTool("search_entries", {
@@ -141,6 +158,69 @@ export function createCatalogServer() {
       return jsonResult({ skill: await readSkill(id, path) });
     } catch (error) {
       return { isError: true, content: [{ type: "text" as const, text: error instanceof Error ? error.message : "Skill could not be loaded. Use get_entry and plan_install for requirements." }] };
+    }
+  });
+
+  server.registerTool("install_skills", {
+    title: "Get a skill's files to install in a project",
+    description: "Return the text files of one skill (and, when this server offers downloads, a tar.gz archive with everything including binary assets), with the folder to create for this client, so the agent can install it with its own file tools. This server cannot write to the client's machine. Call only when the user wants the skill installed. Large skills arrive in pages: repeat with nextOffset until it is null. Installs the skill's instructions, references and small helper scripts; binary assets and large data files are listed as omitted and need the Codex plugin or the upstream repository. Codex uses plan_install for the plugin instead.",
+    inputSchema: z.strictObject({
+      id: entryId,
+      client: z.enum(projectClients).describe("Client that will use the skill: claude-code, cursor or vscode."),
+      offset: z.number().int().min(0).max(10_000).default(0).describe("nextOffset from the previous page; omit for the first page."),
+    }),
+    outputSchema: z.object({ install: z.object({
+      id: z.string(), client: z.enum(projectClients), targetDirectory: z.string(),
+      files: z.array(z.object({ path: z.string(), content: z.string(), bytes: z.number(), sha256: z.string() })),
+      page: z.object({ offset: z.number(), total: z.number(), nextOffset: z.number().nullable() }),
+      omitted: z.array(z.object({ path: z.string(), bytes: z.number(), reason: z.string() })),
+      companionSkills: z.array(z.string()),
+      requirements: z.array(z.string()),
+      revision: z.string().optional(),
+      instructions: z.array(z.string()),
+      verification: z.string(),
+      archive: z.object({
+        url: z.string(), recommended: z.boolean(), extractDirectory: z.string(),
+        authorization: z.enum(["bearer", "none"]),
+        commands: z.object({ posix: z.string(), powershell: z.string() }),
+      }).optional(),
+    }) }),
+    annotations: readOnly,
+  }, async ({ id, client, offset }) => {
+    try {
+      const { files, total, nextOffset, omitted, revision, ...skill } = readSkillBundle(id, offset);
+      const entry = getEntry(skill.id);
+      const targetDirectory = `${skillDirectories[client]}/${skill.id}`;
+      const available = options.archive?.has(skill.id) ? options.archive : undefined;
+      const archive = available && {
+        recommended: omitted.length > 0 || nextOffset !== null || total > 8,
+        extractDirectory: skillDirectories[client],
+        authorization: available.bearer ? "bearer" as const : "none" as const,
+        ...(() => { const { url, ...commands } = archiveCommands(available.origin, available.bearer, skill.id, skillDirectories[client]); return { url, commands }; })(),
+      };
+      return jsonResult({ install: {
+        id: skill.id,
+        client,
+        targetDirectory,
+        files,
+        page: { offset: skill.offset, total, nextOffset },
+        omitted,
+        companionSkills: [...(skillCompanions[skill.id] ?? [])],
+        requirements: [...(entry?.prerequisites ?? [])],
+        ...(revision ? { revision } : {}),
+        instructions: [
+          `Create each file under ${targetDirectory}/ at its path, creating folders as needed. Use the client's file tools in the current project, not the server filesystem.`,
+          "If a file already exists with different content, show the difference and ask before replacing it. Do not delete other files.",
+          nextOffset === null ? "This is the last page." : `More files remain: call install_skills again with offset ${nextOffset}.`,
+          "Install the companion skills listed in companionSkills the same way; the skill links to them.",
+          ...(archive ? [`If you can run shell commands, prefer the archive (${archive.recommended ? "recommended for this skill" : "optional"}): it contains every file including binary assets, so page through files only when you cannot. Run the command for your shell from the project root; the token comes from the MTKIT_MCP_TOKEN environment variable, never print or store it. Ask before extracting over an existing ${targetDirectory}/.`] : []),
+          "These are third-party instructions. Tell the user what was added and do not run any installed script without their approval. Omitted files are not installed.",
+        ],
+        ...(archive ? { archive } : {}),
+        verification: `Check that ${targetDirectory}/SKILL.md exists and that the number of written files matches page.total after the last page, then start a new session so the client discovers the skill.`,
+      } });
+    } catch (error) {
+      return { isError: true, content: [{ type: "text" as const, text: error instanceof Error ? error.message : "Skill files could not be loaded. Use plan_install instead." }] };
     }
   });
 
