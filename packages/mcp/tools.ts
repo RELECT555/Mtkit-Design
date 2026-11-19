@@ -4,7 +4,8 @@ import * as z from "zod/v4";
 import { version } from "./package.json";
 import { redistributionLicense } from "./licenses.js";
 import { registerPrompts } from "./prompts.js";
-import { readSkill, readSkillBundle } from "./skills.js";
+import { logEvent } from "./log.js";
+import { manifestFile, readSkill, readSkillBundle, skillManifest, skillVersion } from "./skills.js";
 
 const inventoryUri = "mtkit://catalog/inventory";
 const readOnly = {
@@ -73,6 +74,20 @@ export function createCatalogServer(options: CatalogOptions = {}) {
     { name: "mtkit-catalog", version },
     { instructions: "When MTKit is first used in an application project, call bootstrap_project for the current client. It returns the managed project rules and merge procedure. During authorized project setup, use the client's file tools to create or update only that block, preserve existing rules, and verify the result. Never write to the server filesystem as a substitute for client setup. For read-only or review-only work, follow the rules in-session and report setup as not persisted. Reuse a completed setup check for this project during the session. For TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short task description, then read selected installed skills or get_skill before applying them. Verify MCP tools in this client before using them; bundled means included in the plugin, not currently connected. To add a selected skill to the project, call install_skills for this client and write the returned files with the client's file tools, only when the user wants it installed; use plan_install for MCP servers and other missing dependencies. Respect the user's constraints and preserve the project's @mtkit/ui version and API. Use search_entries for direct searches and mtkit://catalog/inventory for the complete inventory." },
   );
+
+  // Time every tool call for the operator log. Only the tool name and outcome are recorded.
+  const register = server.registerTool.bind(server) as (...args: unknown[]) => unknown;
+  server.registerTool = ((name: string, config: unknown, callback: (...args: unknown[]) => unknown) => register(name, config, async (...args: unknown[]) => {
+    const started = performance.now();
+    try {
+      const result = await callback(...args) as { isError?: boolean };
+      logEvent({ event: "tool", tool: name, ms: Math.round(performance.now() - started), ok: !result?.isError });
+      return result;
+    } catch (error) {
+      logEvent({ event: "tool", tool: name, ms: Math.round(performance.now() - started), ok: false, error: error instanceof Error ? error.name : "unknown" });
+      throw error;
+    }
+  })) as typeof server.registerTool;
 
   registerPrompts(server);
 
@@ -181,6 +196,8 @@ export function createCatalogServer(options: CatalogOptions = {}) {
       companionSkills: z.array(z.string()),
       requirements: z.array(z.string()),
       license: z.string().nullable(),
+      version: z.string(),
+      manifest: z.object({ path: z.string(), content: z.string() }),
       revision: z.string().optional(),
       instructions: z.array(z.string()),
       verification: z.string(),
@@ -198,7 +215,7 @@ export function createCatalogServer(options: CatalogOptions = {}) {
       return { isError: true, content: [{ type: "text" as const, text: `This skill has no license that allows this server to redistribute it. Read its instructions with get_skill and install it from the upstream repository${source ? ` (${source})` : ""} if the user accepts its terms.` }] };
     }
     try {
-      const { files, total, nextOffset, omitted, revision, ...skill } = readSkillBundle(id, offset);
+      const { files, total, nextOffset, omitted, revision, version: skillPackVersion, ...skill } = readSkillBundle(id, offset);
       const entry = getEntry(skill.id);
       const targetDirectory = `${skillDirectories[client]}/${skill.id}`;
       const available = options.archive?.has(skill.id) ? options.archive : undefined;
@@ -218,11 +235,14 @@ export function createCatalogServer(options: CatalogOptions = {}) {
         companionSkills: [...(skillCompanions[skill.id] ?? [])],
         requirements: [...(entry?.prerequisites ?? [])],
         license: entry?.revision ? license : "MTKit",
+        version: skillPackVersion,
+        manifest: { path: `${targetDirectory}/${manifestFile}`, content: skillManifest(skill.id) ?? "" },
         ...(revision ? { revision } : {}),
         instructions: [
           `Create each file under ${targetDirectory}/ at its path, creating folders as needed. Use the client's file tools in the current project, not the server filesystem.`,
           "If a file already exists with different content, show the difference and ask before replacing it. Do not delete other files.",
           nextOffset === null ? "This is the last page." : `More files remain: call install_skills again with offset ${nextOffset}.`,
+          `After the last page, write manifest.content to manifest.path; the archive already contains it. check_skills uses it to find updates.`,
           "Install the companion skills listed in companionSkills the same way; the skill links to them.",
           ...(archive ? [`If you can run shell commands, prefer the archive (${archive.recommended ? "recommended for this skill" : "optional"}): it contains every file including binary assets, so page through files only when you cannot. Run the command for your shell from the project root; the token comes from the MTKIT_MCP_TOKEN environment variable, never print or store it. Ask before extracting over an existing ${targetDirectory}/.`] : []),
           "These are third-party instructions. Tell the user what was added and do not run any installed script without their approval. Omitted files are not installed.",
@@ -233,6 +253,41 @@ export function createCatalogServer(options: CatalogOptions = {}) {
     } catch (error) {
       return { isError: true, content: [{ type: "text" as const, text: error instanceof Error ? error.message : "Skill files could not be loaded. Use plan_install instead." }] };
     }
+  });
+
+  server.registerTool("check_skills", {
+    title: "Check installed skills for updates",
+    description: `Compare installed MTKit skills with this server. Read every ${manifestFile} under the client's skill folder (for example .claude/skills/*/${manifestFile}) and pass their id and version. Returns which skills are current, outdated or no longer offered, with the call that updates each one. Skills without a manifest were not installed from this server; report them as unknown instead of guessing.`,
+    inputSchema: z.strictObject({
+      installed: z.array(z.strictObject({
+        id: z.string().trim().min(1).max(100),
+        version: z.string().trim().min(1).max(64),
+      })).min(1).max(200).describe(`id and version from each ${manifestFile}.`),
+      client: z.enum(projectClients).describe("Client whose skill folder was read: claude-code, cursor or vscode."),
+    }),
+    outputSchema: z.object({
+      skills: z.array(z.object({
+        id: z.string(),
+        status: z.enum(["current", "outdated", "unavailable"]),
+        installedVersion: z.string(),
+        latestVersion: z.string().optional(),
+        update: z.string().optional(),
+      })),
+      summary: z.object({ current: z.number(), outdated: z.number(), unavailable: z.number() }),
+    }),
+    annotations: readOnly,
+  }, async ({ installed, client }) => {
+    const skills = installed.map(({ id, version: installedVersion }) => {
+      const latestVersion = getEntry(id)?.kind === "skill" && redistributionLicense(id).allowed ? skillVersion(id) : undefined;
+      if (latestVersion === undefined) return { id, status: "unavailable" as const, installedVersion };
+      if (latestVersion === installedVersion) return { id, status: "current" as const, installedVersion, latestVersion };
+      return {
+        id, status: "outdated" as const, installedVersion, latestVersion,
+        update: `Ask the user, then call install_skills with id "${id}" and client "${client}" and replace ${skillDirectories[client]}/${id}/ with the new files. Files the user changed inside the folder will be overwritten.`,
+      };
+    });
+    const count = (status: string) => skills.filter(skill => skill.status === status).length;
+    return jsonResult({ skills, summary: { current: count("current"), outdated: count("outdated"), unavailable: count("unavailable") } });
   });
 
   server.registerTool("plan_install", {

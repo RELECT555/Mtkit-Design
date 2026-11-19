@@ -9,7 +9,7 @@ export const archivePathPattern = /^\/skills\/([a-z0-9]+(?:-[a-z0-9]+)*)\.tar\.g
 export const archiveLimitBytes = 128 * 1024 * 1024;
 
 const block = 512;
-const ignoredNames = new Set([".mtkit-source.json", ".git", ".github", "node_modules", ".DS_Store"]);
+const ignoredNames = new Set([".mtkit-source.json", ".mtkit-skill.json", ".git", ".github", "node_modules", ".DS_Store"]);
 const safeSegment = /^[\w.-]+$/;
 
 export function hasSkillFolder(directory: string, id: string) {
@@ -61,7 +61,21 @@ async function* walk(directory: string, prefix: string): AsyncGenerator<{ path: 
   }
 }
 
-async function* tarChunks(root: string, id: string, limit: number): AsyncGenerator<Buffer> {
+export interface ExtraFile { path: string; content: string }
+
+function* entry(path: string, data: Buffer, mode: number, mtime: number): Generator<Buffer> {
+  if (Buffer.byteLength(path) > 100) {
+    const record = paxRecord("path", path);
+    yield header("PaxHeader/entry", record.length, 0o644, mtime, "x");
+    yield record;
+    yield padding(record.length);
+  }
+  yield header(path, data.length, mode, mtime);
+  yield data;
+  yield padding(data.length);
+}
+
+async function* tarChunks(root: string, id: string, limit: number, extra: readonly ExtraFile[]): AsyncGenerator<Buffer> {
   let total = 0;
   for await (const { path, file, size, mode, mtime } of walk(join(root, id), id)) {
     total += size;
@@ -89,14 +103,19 @@ async function* tarChunks(root: string, id: string, limit: number): AsyncGenerat
     }
     yield padding(size);
   }
+  // Generated files such as the install manifest; they replace nothing because the walk skips them.
+  for (const { path, content } of extra) {
+    if (!path.split("/").every(segment => safeSegment.test(segment) && segment !== "..")) throw new Error("Unsafe extra archive path");
+    yield* entry(`${id}/${path}`, Buffer.from(content), 0o644, Math.floor(Date.now() / 1000));
+  }
   yield Buffer.alloc(block * 2);
 }
 
 /** A gzip-compressed tar stream with one top-level folder named after the skill. */
-export function createSkillArchive(directory: string, id: string, limit = archiveLimitBytes): Readable {
+export function createSkillArchive(directory: string, id: string, limit = archiveLimitBytes, extra: readonly ExtraFile[] = []): Readable {
   if (!hasSkillFolder(directory, id) || !statSync(join(directory, id)).isDirectory()) throw new Error("Skill folder is not available on this server.");
   const gzip = createGzip({ level: 6 });
-  const source = Readable.from(tarChunks(directory, id, limit));
+  const source = Readable.from(tarChunks(directory, id, limit, extra));
   source.on("error", error => gzip.destroy(error));
   return source.pipe(gzip);
 }

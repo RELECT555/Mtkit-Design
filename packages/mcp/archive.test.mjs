@@ -97,3 +97,14 @@ test("only catalog-shaped skill names with a SKILL.md can be archived", () => wi
 test("an archive over the size limit fails instead of producing a truncated success", () => withSkills(async directory => {
   await assert.rejects(pipeline(createSkillArchive(directory, "sample-skill", 1_000), createWriteStream(join(directory, "limited.tar.gz"))), /size limit/);
 }));
+
+test("generated files such as the install manifest are added inside the skill folder", () => withSkills(async directory => {
+  const archive = join(directory, "manifest.tar.gz");
+  await pipeline(createSkillArchive(directory, "sample-skill", undefined, [{ path: ".mtkit-skill.json", content: '{"id":"sample-skill"}\n' }]), createWriteStream(archive));
+  await mkdir(join(directory, "out"));
+  await exec("tar", ["-xzf", "manifest.tar.gz", "-C", "out"], { cwd: directory });
+  assert.equal(await readFile(join(directory, "out", "sample-skill", ".mtkit-skill.json"), "utf8"), '{"id":"sample-skill"}\n');
+  for (const path of ["../escape.json", "a/../../b", "/abs.json"]) {
+    await assert.rejects(pipeline(createSkillArchive(directory, "sample-skill", undefined, [{ path, content: "x" }]), createWriteStream(join(directory, "bad.tar.gz"))), /Unsafe/);
+  }
+}));

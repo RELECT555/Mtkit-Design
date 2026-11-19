@@ -88,6 +88,7 @@ export async function readSkill(id: string, path = "SKILL.md", fetchSource: type
 }
 
 interface PackedSkill {
+  version: string;
   files: Readonly<Record<string, string>>;
   omitted: readonly { path: string; bytes: number; reason: string }[];
 }
@@ -99,6 +100,21 @@ let packed: Readonly<Record<string, PackedSkill>> | undefined;
 function loadPack() {
   packed ??= JSON.parse(gunzipSync(skillPack).toString("utf8")) as Record<string, PackedSkill>;
   return packed;
+}
+
+/** Version of a skill in this server build, or undefined when the build does not contain it. */
+export function skillVersion(id: string) {
+  return Object.hasOwn(loadPack(), id) ? loadPack()[id].version : undefined;
+}
+
+/** File written next to an installed skill so check_skills can find outdated installations. */
+export const manifestFile = ".mtkit-skill.json";
+
+export function skillManifest(id: string) {
+  const version = skillVersion(id);
+  const revision = getEntry(id)?.revision;
+  return version === undefined ? undefined : `${JSON.stringify({ id, version, ...(revision ? { revision } : {}), source: "mtkit-catalog" }, null, 2)}
+`;
 }
 
 /**
@@ -134,6 +150,7 @@ export function readSkillBundle(id: string, offset = 0, budget = bundleBudgetByt
     offset,
     nextOffset: next < paths.length ? next : null,
     omitted: skill.omitted,
+    version: skill.version,
     ...(entry.revision ? { revision: entry.revision } : {}),
   };
 }

@@ -10,6 +10,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { gunzipSync } from "node:zlib";
 import { build } from "esbuild";
 
 const executable = fileURLToPath(new URL("../../plugins/mtkit-design/dist/catalog.cjs", import.meta.url));
@@ -91,7 +92,7 @@ async function checkCatalog(client) {
   assert(client.getServerCapabilities()?.resources);
   assert(client.getServerCapabilities()?.prompts);
   const prompts = await client.listPrompts();
-  assert.deepEqual(prompts.prompts.map(({ name }) => name).sort(), ["install", "pick", "setup"]);
+  assert.deepEqual(prompts.prompts.map(({ name }) => name).sort(), ["install", "pick", "setup", "update"]);
   const setupPrompt = await client.getPrompt({ name: "setup", arguments: { client: "cursor", task: "CRM на React" } });
   const setupText = setupPrompt.messages[0].content.text;
   for (const tool of ["bootstrap_project", "recommend_tools", "install_skills", "plan_install"]) assert.match(setupText, new RegExp(tool));
@@ -103,8 +104,9 @@ async function checkCatalog(client) {
   assert.match((await client.getPrompt({ name: "install", arguments: { id: "no-such-entry" } })).messages[0].content.text, /search_entries/);
   assert.match((await client.getPrompt({ name: "pick", arguments: { task: "a11y review" } })).messages[0].content.text, /Do not install anything/);
   await assert.rejects(client.getPrompt({ name: "setup", arguments: { client: "unsupported" } }));
+  assert.match((await client.getPrompt({ name: "update", arguments: {} })).messages[0].content.text, /check_skills/);
   const listing = await client.listTools();
-  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "get_entry", "get_skill", "install_skills", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
+  assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "check_skills", "get_entry", "get_skill", "install_skills", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
   const bootstrapTool = listing.tools.find(({ name }) => name === "bootstrap_project");
   assert.equal(bootstrapTool.annotations?.readOnlyHint, true, "Remote bootstrap returns a client-side plan rather than writing project files");
   assert.equal(bootstrapTool.annotations?.destructiveHint, false);
@@ -200,6 +202,18 @@ async function checkCatalog(client) {
     assert.equal(install.page.nextOffset, null);
     assert.equal(install.files.length, install.page.total);
     assert.deepEqual(install.companionSkills, ["library-docs", "review-screen"]);
+    assert.match(install.version, /^[a-f0-9]{16}$/);
+    assert.equal(install.manifest.path, `${directory}/design-screen/.mtkit-skill.json`);
+    assert.equal(JSON.parse(install.manifest.content).version, install.version);
+    const check = (await client.callTool({ name: "check_skills", arguments: { client: target, installed: [
+      { id: "design-screen", version: install.version },
+      { id: "review-screen", version: "0000000000000000" },
+      { id: "claude-dual-review-file-based", version: "0000000000000000" },
+      { id: "context7", version: "0000000000000000" },
+    ] } })).structuredContent;
+    assert.deepEqual(check.skills.map(({ status }) => status), ["current", "outdated", "unavailable", "unavailable"]);
+    assert.match(check.skills[1].update, new RegExp(`client "${target}"`));
+    assert.deepEqual(check.summary, { current: 1, outdated: 1, unavailable: 2 });
     assert(install.files.every(({ path }) => !path.startsWith("/") && !path.includes("..")));
     const text = response.content.filter(({ type }) => type === "text").map(({ text }) => text).join("\n");
     assert.match(text, /"SKILL\.md"/, "Clients that only read text content must receive the files");
@@ -316,12 +330,14 @@ async function withHttpServer(args, env, check) {
   });
   const stopped = once(child, "exit");
   const lines = createInterface({ input: child.stderr });
+  const logged = [];
+  lines.on("line", line => logged.push(line));
   const httpClient = new Client({ name: "mtkit-http-smoke", version: "1.0.0" });
   try {
     const [startup] = await once(lines, "line", { signal: AbortSignal.timeout(5_000) });
     const address = /http:\/\/(?:0\.0\.0\.0|127\.0\.0\.1):(\d+)\/mcp/.exec(startup);
     assert(address && startup.includes("listening"), startup);
-    await check(new URL(`http://127.0.0.1:${address[1]}/mcp`), httpClient);
+    await check(new URL(`http://127.0.0.1:${address[1]}/mcp`), httpClient, logged);
   } finally {
     try {
       await httpClient.close();
@@ -373,6 +389,8 @@ async function checkArchives(client, address, { origin, bearer, headers }) {
   assert.equal(download.headers.get("cache-control"), "no-store");
   const bytes = Buffer.from(await download.arrayBuffer());
   assert(bytes[0] === 0x1f && bytes[1] === 0x8b, "Archive must be gzip");
+  const tar = gunzipSync(bytes).toString("latin1");
+  assert(tar.includes("design-screen/.mtkit-skill.json") && tar.includes('"source": "mtkit-catalog"'), "Archives carry the install manifest");
   assert.equal((await fetch(url, { method: "HEAD", headers })).status, 200);
   for (const path of ["/skills/context7.tar.gz", "/skills/no-such-skill.tar.gz", "/skills/design-screen.zip", "/skills/..%2f..%2fpackage.json"]) {
     assert.equal((await fetch(new URL(path, address), { headers })).status, 404, path);
@@ -401,6 +419,10 @@ await withHttpServer(["--http", "--port", "0"], {}, async (address, client) => {
   assert.equal((await fetch(address, { headers: { origin: "https://unrelated.example" } })).status, 403);
   assert.equal(await requestStatus(address, { host: "unrelated.example" }), 403);
   assert.equal((await fetch(new URL("/healthz", address), { method: "HEAD" })).status, 200);
+  const health = await (await fetch(new URL("/healthz", address))).json();
+  assert.equal(health.status, "ok");
+  assert.match(health.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(health.archives, true);
   assert.equal((await fetch(new URL("/missing", address))).status, 404);
   console.log("Loopback HTTP: request validation, concurrent tools, health, Host and Origin guards passed");
 });
@@ -412,7 +434,7 @@ await withHttpServer(["--hosted"], {
   PORT: "0",
   MTKIT_PUBLIC_URL: `https://${host}/mcp`,
   MTKIT_MCP_TOKEN: `${token}, ${previousToken}`,
-}, async (address, client) => {
+}, async (address, client, logged) => {
   assert.notEqual(await requestStatus(address, { host, authorization: `Bearer ${previousToken}` }), 401, "Every configured token is accepted during rotation");
   assert.equal(await requestStatus(address, { host, authorization: `Bearer ${token},${previousToken}` }), 401, "A token list is never a valid credential");
   assert.equal(await requestStatus(new URL("/healthz", address)), 200);
@@ -433,5 +455,27 @@ await withHttpServer(["--hosted"], {
   assert.equal((await fetch(new URL("/skills/design-screen.tar.gz", address), { headers: { authorization: `Bearer ${"0".repeat(64)}` } })).status, 401);
   assert.equal(await requestStatus(new URL("/skills/design-screen.tar.gz", address), { host: "unrelated.example", authorization: `Bearer ${token}` }), 403);
   await checkArchives(client, address, { origin: `https://${host}`, bearer: true, headers: { authorization: `Bearer ${token}` } });
+  const events = logged.filter(line => line.startsWith("{")).map(line => JSON.parse(line));
+  assert(events.some(({ event, tool, ok }) => event === "tool" && tool === "install_skills" && ok), "Tool calls are logged");
+  assert(events.some(({ event, token }) => event === "request" && token === 1), "Logs show which configured token was used");
+  assert(events.some(({ event, skill }) => event === "archive" && skill === "design-screen"));
+  assert(events.some(({ event }) => event === "unauthorized"));
+  assert(!logged.some(line => line.includes(token) || line.includes(previousToken)), "Logs never contain tokens");
   console.log("Hosted HTTP: health, Host and Origin guards, bearer authorization, inventory parity, and tools passed");
+});
+
+await withHttpServer(["--hosted"], {
+  PORT: "0",
+  MTKIT_PUBLIC_URL: `https://${host}/mcp`,
+  MTKIT_MCP_TOKEN: token,
+  MTKIT_RATE_LIMIT: "12",
+}, async (address, _client, logged) => {
+  const headers = { host, authorization: `Bearer ${token}` };
+  assert.equal(await requestStatus(new URL("/skills/design-screen.tar.gz", address), headers), 200, "An archive costs ten requests");
+  const statuses = [];
+  for (let index = 0; index < 4; index++) statuses.push(await requestStatus(address, headers));
+  assert.deepEqual(statuses.map(status => status === 429), [false, false, true, true]);
+  assert.equal(await requestStatus(address, { host }), 401, "Missing tokens are rejected before rate limiting");
+  assert(logged.some(line => line.includes('"rate_limited"')));
+  console.log("Rate limit: per-token budget, archive cost and 429 passed");
 });

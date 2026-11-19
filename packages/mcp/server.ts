@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { catalogPort } from "@mtkit-design/catalog";
 import { hasSkillFolder } from "./archive.js";
+import { enableLogging } from "./log.js";
+import { manifestFile, skillManifest } from "./skills.js";
+import { version } from "./package.json";
 import { redistributionLicense } from "./licenses.js";
 import { readHostedConfig, serveHttp } from "./http.js";
 import { createCatalogServer, type CatalogOptions } from "./tools.js";
@@ -18,6 +21,7 @@ function findSkillsDirectory(env: NodeJS.ProcessEnv) {
 
 /** Starts an HTTP transport that also serves skill archives when the skill folders are present. */
 function start(port: number, hosted?: ReturnType<typeof readHostedConfig>) {
+  enableLogging();
   const skillsDirectory = findSkillsDirectory(process.env);
   const options: CatalogOptions = {};
   const enable = (origin: string) => {
@@ -26,6 +30,11 @@ function start(port: number, hosted?: ReturnType<typeof readHostedConfig>) {
   if (hosted) enable(hosted.publicUrl.origin);
   serveHttp(() => createCatalogServer(options), port, hosted, {
     ...(skillsDirectory && { skillsDirectory }),
+    archiveExtras: id => {
+      const manifest = skillManifest(id);
+      return manifest ? [{ path: manifestFile, content: manifest }] : [];
+    },
+    health: { version, archives: Boolean(skillsDirectory), ...(process.env.MTKIT_BUILD_REVISION && { revision: process.env.MTKIT_BUILD_REVISION }) },
     onListening: origin => { if (!hosted) enable(origin); },
   });
 }

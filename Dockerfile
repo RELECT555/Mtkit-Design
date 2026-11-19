@@ -16,8 +16,10 @@ RUN node scripts/install.mjs --prepare-only
 RUN npm run catalog:check && npm run catalog:test && npm run catalog:build && npm run catalog:smoke
 
 FROM node:24-bookworm-slim AS runtime
+ARG MTKIT_BUILD_REVISION=""
 WORKDIR /app
 ENV NODE_ENV=production
+ENV MTKIT_BUILD_REVISION=$MTKIT_BUILD_REVISION
 ENV PORT=8080
 COPY --from=build /app/plugins/mtkit-design/dist/ ./
 # Full skill folders (with binary assets) for GET /skills/<id>.tar.gz.

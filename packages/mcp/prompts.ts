@@ -60,6 +60,23 @@ export function registerPrompts(server: McpServer) {
     ].filter(Boolean).join("\n"));
   });
 
+  server.registerPrompt("update", {
+    title: "Update installed MTKit skills",
+    description: "Find MTKit skills installed in this project, check them against the server and update outdated ones after confirmation.",
+    argsSchema: z.object({ client }),
+  }, ({ client: chosen }) => {
+    const target = chosen && chosen !== "codex" ? chosen : "claude-code";
+    return message([
+      `Check the MTKit skills installed in the current project for ${target}.`,
+      "1. Find every .mtkit-skill.json inside the client's skill folder and read id and version from each.",
+      `2. Call check_skills with these entries and client "${target}". Skill folders without a manifest were not installed by MTKit; list them separately and leave them alone.`,
+      "3. Show which skills are current, outdated or no longer offered, and ask which outdated ones to update. Warn that local edits inside an updated skill folder are overwritten.",
+      `4. Update the chosen skills with install_skills, as its result describes, including the new manifest.
+${installSteps(target)}`,
+      "5. Report what was updated and tell me to start a new session.",
+    ].join("\n"));
+  });
+
   server.registerPrompt("pick", {
     title: "Pick MTKit tools for a task",
     description: "Recommend skills and MCP servers for a task without installing anything.",

@@ -91,3 +91,10 @@ test("every skill present locally installs from the server bundle", () => {
     assert.match(readSkillBundle(id).files[0].content, /^---\r?\nname:/);
   }
 });
+
+test("skill versions are stable per build and change with any file", async () => {
+  const first = readSkillBundle("design-screen").version;
+  assert.match(first, /^[a-f0-9]{16}$/);
+  assert.equal(readSkillBundle("design-screen").version, first);
+  assert.notEqual(readSkillBundle("review-screen").version, first);
+});

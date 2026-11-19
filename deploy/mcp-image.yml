@@ -29,7 +29,7 @@ steps:
 
   # The Dockerfile runs type checks, unit tests and the process smoke test during the build.
   - ${{ if eq(parameters.containerRegistry, '') }}:
-    - script: docker build --pull -t "$(image)" .
+    - script: docker build --pull --build-arg MTKIT_BUILD_REVISION=$(Build.SourceVersion) -t "$(image)" .
       displayName: Build image
   - ${{ else }}:
     - task: Docker@2
@@ -39,7 +39,7 @@ steps:
         containerRegistry: ${{ parameters.containerRegistry }}
         repository: ${{ parameters.repository }}
         tags: $(Build.SourceVersion)
-        arguments: --pull -t $(image)
+        arguments: --pull --build-arg MTKIT_BUILD_REVISION=$(Build.SourceVersion) -t $(image)
 
   - script: |
       set -euo pipefail
