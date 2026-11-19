@@ -5,7 +5,8 @@ import { galleryFiltersPreview } from "./gallery-filters-preview.ts";
 
 const categories = [...new Set(shaderPresets.map(({ group }) => group))];
 
-function shaderBackdrop({ palettes }: ShaderPreset) {
+function shaderBackdrop({ palettes, effect }: ShaderPreset) {
+  if (effect) return `<div class="shader-effect" data-effect="${effect}" aria-hidden="true"></div>`;
   const [primary, secondary] = palettes[0].colors;
   return `<div class="shader-frame" aria-hidden="true" style="--shader-primary:${escapeHtml(primary)};--shader-secondary:${escapeHtml(secondary)}"></div>`;
 }
@@ -35,9 +36,10 @@ function shaderDetailPreview(preset: ShaderPreset) {
           <div class="shader-tabs" inert><button type="button" data-state="active">Превью</button><button type="button">Код</button><button type="button">Промпт</button></div>
           <code class="shader-filename">${escapeHtml(preset.componentName)}.tsx</code>
         </div>
-        <div class="shader-tab-content"><div class="shader-preview">${shaderBackdrop(preset)}
+        <div class="shader-tab-content"><div class="shader-preview"${preset.effect ? ` data-effect="${preset.effect}"` : ""}>${shaderBackdrop(preset)}
           <div class="shader-preview-tools" inert>
             ${preset.renderer?.image ? '<button type="button">Оригинал</button>' : ""}
+            ${preset.effect === "liquid-ether" ? '<button type="button">Заново</button>' : ""}
             <button type="button">С контентом</button><button type="button" class="shader-preview-loading-play"><span>Ⅱ</span> Пауза</button><button type="button" class="shader-preview-loading-start"><span>▸</span> Пуск</button><button type="button">⛶</button>
           </div>
         </div></div>

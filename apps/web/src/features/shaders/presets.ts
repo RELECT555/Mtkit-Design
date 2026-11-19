@@ -156,7 +156,8 @@ void main() {
 }
 `;
 
-export type Palette = { name: string; colors: readonly [string, string] };
+export type Palette = { name: string; colors: readonly [string, string, string?] };
+export type InteractiveEffect = "tubes" | "liquid-ether";
 export type ShaderPreset = {
   id: string;
   componentName: string;
@@ -164,13 +165,44 @@ export type ShaderPreset = {
   description: string;
   direction: string;
   group: "Космос" | "Абстракция" | "Атмосфера" | "Изображения";
-  fragment: string;
   palettes: readonly Palette[];
-  renderer?: ShaderRendererOptions;
   interaction?: string;
-};
+} & (
+  | { fragment: string; renderer?: ShaderRendererOptions; effect?: never }
+  | { effect: InteractiveEffect; fragment?: never; renderer?: never }
+);
 
 export const shaderPresets: readonly [ShaderPreset, ...ShaderPreset[]] = [
+  {
+    id: "tubes-interactive-background",
+    componentName: "TubesInteractiveBackground",
+    name: "Tubes Interactive Background",
+    description: "Пучок тонких неоновых трубок следует за указателем и меняет цвет при нажатии.",
+    direction: "Render a 3D bundle of parallel, glossy neon tubes on a black background with colored specular reflections and bloom. The tube heads follow the pointer while the tapered tails catch up along the recent path. Animate a small loop at rest. Randomize the tube and light colors on press.",
+    group: "Абстракция",
+    effect: "tubes",
+    interaction: "Проведите указателем по фону или проведите пальцем. Нажмите, чтобы сменить цвет трубок.",
+    palettes: [
+      { name: "Фуксия, лайм и индиго", colors: ["#f967fb", "#53bc28", "#6958d5"] },
+      { name: "Лёд, синий и фиолетовый", colors: ["#62e7ff", "#5484ff", "#8f69ff"] },
+      { name: "Янтарь, коралл и розовый", colors: ["#ffb856", "#fd527f", "#ef9fff"] },
+    ],
+  },
+  {
+    id: "liquid-ether-background",
+    componentName: "LiquidEtherBackground",
+    name: "Liquid Ether Background",
+    description: "Указатель приводит жидкость в движение. Цвет и прозрачность шлейфа зависят от скорости потока.",
+    direction: "Simulate a two-dimensional fluid. Apply pointer and touch force to a persistent velocity field, advect and project the field each step, and derive color and opacity from flow speed. Slow motion is translucent against the surface, while fast motion carries a rich indigo edge with pink and pale lilac transitions. Use a slow autonomous emitter when idle.",
+    group: "Абстракция",
+    effect: "liquid-ether",
+    interaction: "Проведите указателем или пальцем по превью, чтобы направить поток.",
+    palettes: [
+      { name: "Индиго, розовый и сирень", colors: ["#5227ff", "#ff9ffc", "#b19eef"] },
+      { name: "Лазурь, мята и лёд", colors: ["#386dff", "#79fcd0", "#b5f1ff"] },
+      { name: "Слива, янтарь и персик", colors: ["#8c54ff", "#ffad69", "#ffd1b4"] },
+    ],
+  },
   {
     id: "phosphor-shell",
     componentName: "PhosphorShell",

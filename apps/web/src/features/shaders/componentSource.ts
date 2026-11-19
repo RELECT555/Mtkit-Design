@@ -1,9 +1,19 @@
 import rendererSource from "./webgl.ts?raw";
 import imageTextureSource from "./imageTexture.ts?raw";
 import particleVertexSource from "./particleVertex.ts?raw";
+import tubesSource from "./tubes/TubesInteractiveBackground.tsx?raw";
+import liquidEtherSource from "./liquid-ether/LiquidEtherBackground.tsx?raw";
 import type { Palette, ShaderPreset } from "./presets";
 
+const effectSources = { tubes: tubesSource, "liquid-ether": liquidEtherSource };
+
 export function componentSource(preset: ShaderPreset, palette: Palette, speed: number, intensity: number, imageSrc = "") {
+  if (preset.effect) {
+    return effectSources[preset.effect]
+      .replace(/const defaultColors = .* as const;/, `const defaultColors = ${JSON.stringify(palette.colors)} as const;`)
+      .replace("const defaultSpeed = 1;", `const defaultSpeed = ${speed};`)
+      .replace("const defaultIntensity = 1;", `const defaultIntensity = ${intensity};`);
+  }
   const interactive = Boolean(preset.renderer?.pointer);
   const hasImage = Boolean(preset.renderer?.image);
   const options = JSON.stringify({ ...preset.renderer, pointer: undefined });

@@ -1,7 +1,7 @@
 import { Button, Card } from "@mtkit/ui";
 import { useRef, type MouseEvent, type Ref } from "react";
 import { GalleryFilters } from "../../shared/GalleryFilters";
-import { ShaderCanvas } from "./ShaderCanvas";
+import { ShaderPreview } from "./ShaderPreview";
 import { imageDemo } from "./imageDemo";
 import { shaderPresets, type ShaderPreset } from "./presets";
 import { shaderCategoryIcons, shaderGalleryDescription } from "./gallery-content";
@@ -61,7 +61,7 @@ export function ShaderGallery({ query, category, onQueryChange, onCategoryChange
                 <Card className="shader-card">
                   <a className="shader-card-link" id={`shader-card-${preset.id}`} href={`?shader=${preset.id}`} onClick={(event) => onOpen(event, preset)}>
                     <div className="shader-card-preview" aria-hidden="true">
-                      <ShaderCanvas fragment={preset.fragment} colors={preset.palettes[0].colors} speed={1} intensity={1} playing={playing} options={preset.renderer} imageSrc={preset.renderer?.image ? imageDemo.url : undefined} thumbnail />
+                      <ShaderPreview preset={preset} palette={preset.palettes[0]} speed={1} intensity={1} playing={playing} imageSrc={preset.renderer?.image ? imageDemo.url : undefined} thumbnail />
                     </div>
                     <div className="shader-card-caption">
                       <div>

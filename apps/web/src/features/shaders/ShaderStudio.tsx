@@ -1,6 +1,6 @@
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@mtkit/ui";
 import { useEffect, useRef, useState, type ChangeEvent, type MouseEvent, type Ref } from "react";
-import { ShaderCanvas } from "./ShaderCanvas";
+import { ShaderPreview } from "./ShaderPreview";
 import type { ShaderPreset } from "./presets";
 import { shaderPrompt } from "./shaderPrompt";
 import { imageDemo } from "./imageDemo";
@@ -25,6 +25,7 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
   const [showContent, setShowContent] = useState(false);
   const [status, setStatus] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [replay, setReplay] = useState(0);
   const [imageSrc, setImageSrc] = useState("");
   const [imageName, setImageName] = useState("");
   const [showOriginal, setShowOriginal] = useState(false);
@@ -73,6 +74,7 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
     setPaletteIndex(0);
     setIntensity(1);
     setSpeed(1);
+    if (preset.effect) setReplay((value) => value + 1);
     resetImage();
   }
 
@@ -159,8 +161,8 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
           <code className="shader-filename">{preset.componentName}.tsx</code>
         </div>
         <TabsContent value="preview" className="shader-tab-content" forceMount>
-          <div className="shader-preview" ref={preview}>
-            <ShaderCanvas fragment={preset.fragment} colors={palette.colors} speed={speed} intensity={intensity} playing={playing && tab === "preview" && !showOriginal} options={preset.renderer} imageSrc={preset.renderer?.image ? imageSrc || imageDemo.url : undefined} />
+          <div className="shader-preview" data-effect={preset.effect} ref={preview}>
+            <ShaderPreview key={replay} preset={preset} palette={palette} speed={speed} intensity={intensity} playing={playing && tab === "preview" && !showOriginal} imageSrc={preset.renderer?.image ? imageSrc || imageDemo.url : undefined} />
             {showOriginal && preset.renderer?.image && <div className="shader-original" data-fit={preset.renderer?.particles ? "contain" : "cover"}><img src={imageSrc || imageDemo.url} alt="Исходное изображение без эффекта" /></div>}
             {showContent && <div className="shader-content-demo" aria-hidden="true">
               <p>Пример первого экрана</p>
@@ -169,6 +171,7 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
             </div>}
             <div className="shader-preview-tools" aria-label="Управление превью">
               {preset.renderer?.image && <Button type="button" variant="outline" aria-pressed={showOriginal} onClick={() => setShowOriginal(!showOriginal)}>Оригинал</Button>}
+              {preset.effect === "liquid-ether" && <Button type="button" variant="outline" onClick={() => setReplay((value) => value + 1)}>Заново</Button>}
               <Button type="button" variant="outline" aria-pressed={showContent} onClick={() => setShowContent(!showContent)}>
                 С контентом
               </Button>
@@ -192,7 +195,7 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
           <section className="shader-controls" aria-labelledby="shader-controls-title">
             <div className="shader-controls-heading">
               <h2 id="shader-controls-title">Настройки</h2>
-              <Button type="button" variant="ghost" disabled={!changed} onClick={reset}>Сбросить</Button>
+              <Button type="button" variant="ghost" disabled={!changed && !preset.effect} onClick={reset}>Сбросить</Button>
             </div>
             <div className="shader-settings">
               <label className="shader-slider">
@@ -210,7 +213,9 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
                     <label className="shader-palette" key={name} title={name}>
                       <input type="radio" name="shader-palette" checked={paletteIndex === index} onChange={() => setPaletteIndex(index)} />
                       <span className="sr-only">{name}</span>
-                      <span aria-hidden="true" style={{ background: `linear-gradient(132deg, ${colors[0]} 46%, ${colors[1]} 54%)` }} />
+                      <span aria-hidden="true" style={{ background: colors[2]
+                        ? `linear-gradient(132deg, ${colors[0]} 31%, ${colors[1]} 37% 63%, ${colors[2]} 69%)`
+                        : `linear-gradient(132deg, ${colors[0]} 46%, ${colors[1]} 54%)` }} />
                     </label>
                   ))}
                 </div>
@@ -233,7 +238,7 @@ export function ShaderStudio({ preset, playing, onPlayingChange, onBack, heading
           {source ? (
             <>
               <pre className="shader-source" tabIndex={0} aria-label="Исходный код компонента"><code>{source}</code></pre>
-              <p className="shader-code-tip">Сохраните файл <code>{preset.componentName}.tsx</code> и добавьте <code>{`<${preset.componentName} />`}</code> в свой React-проект.{preset.renderer?.image && " Для другой картинки передайте imageSrc. Выбранный здесь файл включается в код."}</p>
+              <p className="shader-code-tip">Сохраните файл <code>{preset.componentName}.tsx</code> и добавьте <code>{`<${preset.componentName} />`}</code> в свой React-проект.{preset.effect === "tubes" && <> Установите <code>npm install three</code> и <code>npm install -D @types/three</code>.</>}{preset.renderer?.image && " Для другой картинки передайте imageSrc. Выбранный здесь файл включается в код."}</p>
             </>
           ) : sourceState.status === "error" ? (
             <p className="shader-source" role="alert">Не удалось загрузить исходный код.</p>
