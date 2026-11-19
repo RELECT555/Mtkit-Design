@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { catalogPort } from "@mtkit-design/catalog";
 import { hasSkillFolder } from "./archive.js";
+import { redistributionLicense } from "./licenses.js";
 import { readHostedConfig, serveHttp } from "./http.js";
 import { createCatalogServer, type CatalogOptions } from "./tools.js";
 
@@ -20,7 +21,7 @@ function start(port: number, hosted?: ReturnType<typeof readHostedConfig>) {
   const skillsDirectory = findSkillsDirectory(process.env);
   const options: CatalogOptions = {};
   const enable = (origin: string) => {
-    if (skillsDirectory) options.archive = { origin, bearer: hosted !== undefined, has: id => hasSkillFolder(skillsDirectory, id) };
+    if (skillsDirectory) options.archive = { origin, bearer: hosted !== undefined, has: id => redistributionLicense(id).allowed && hasSkillFolder(skillsDirectory, id) };
   };
   if (hosted) enable(hosted.publicUrl.origin);
   serveHttp(() => createCatalogServer(options), port, hosted, {

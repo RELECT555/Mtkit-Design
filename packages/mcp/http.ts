@@ -5,10 +5,11 @@ import { hostHeaderValidation, localhostHostValidation, localhostOriginValidatio
 import { createMcpHandler, type McpServerFactory } from "@modelcontextprotocol/server";
 import { catalogPath, getEntry, parseHostedEndpoint } from "@mtkit-design/catalog";
 import { archivePathPattern, createSkillArchive, hasSkillFolder } from "./archive.js";
+import { redistributionLicense } from "./licenses.js";
 
 interface HostedConfig {
   publicUrl: URL;
-  tokenDigest: Buffer;
+  tokenDigests: readonly Buffer[];
 }
 
 export function readHostedConfig(env: NodeJS.ProcessEnv): HostedConfig {
@@ -19,16 +20,21 @@ export function readHostedConfig(env: NodeJS.ProcessEnv): HostedConfig {
     throw new Error(`MTKIT_PUBLIC_URL must be the HTTPS URL of this server's ${catalogPath} endpoint.`);
   }
 
-  const token = env.MTKIT_MCP_TOKEN ?? "";
-  if (!/^[a-zA-Z0-9._~-]{32,256}$/.test(token)) {
-    throw new Error("MTKIT_MCP_TOKEN must be a 32–256 character bearer secret using letters, numbers, dots, underscores, tildes or hyphens.");
+  // Several comma-separated tokens let operators rotate the secret without downtime: add the new
+  // token, move clients over, then remove the old one.
+  const tokens = (env.MTKIT_MCP_TOKEN ?? "").split(",").map(token => token.trim());
+  if (tokens.length > 8 || !tokens.every(token => /^[a-zA-Z0-9._~-]{32,256}$/.test(token))) {
+    throw new Error("MTKIT_MCP_TOKEN must be one to eight comma-separated 32–256 character bearer secrets using letters, numbers, dots, underscores, tildes or hyphens.");
   }
-  return { publicUrl, tokenDigest: createHash("sha256").update(token).digest() };
+  return { publicUrl, tokenDigests: tokens.map(token => createHash("sha256").update(token).digest()) };
 }
 
-function hasBearerToken(authorization: string | undefined, expectedDigest: Buffer) {
+function hasBearerToken(authorization: string | undefined, expectedDigests: readonly Buffer[]) {
   const token = /^Bearer ([a-zA-Z0-9._~-]{32,256})$/i.exec(authorization ?? "")?.[1];
-  return token !== undefined && timingSafeEqual(createHash("sha256").update(token).digest(), expectedDigest);
+  if (token === undefined) return false;
+  const digest = createHash("sha256").update(token).digest();
+  // Compare against every configured token so timing does not reveal which one matched.
+  return expectedDigests.reduce((matched, expected) => timingSafeEqual(digest, expected) || matched, false);
 }
 
 export interface HttpOptions {
@@ -66,11 +72,11 @@ export function serveHttp(factory: McpServerFactory, port: number, hosted?: Host
 
     const archiveId = path === undefined ? undefined : archivePathPattern.exec(path)?.[1];
     if (archiveId !== undefined && options.skillsDirectory !== undefined && (request.method === "GET" || request.method === "HEAD")) {
-      if (hosted && !hasBearerToken(request.headers.authorization, hosted.tokenDigest)) {
+      if (hosted && !hasBearerToken(request.headers.authorization, hosted.tokenDigests)) {
         response.writeHead(401, { "WWW-Authenticate": 'Bearer realm="MTKit Catalog"', "Cache-Control": "no-store" }).end();
         return;
       }
-      if (getEntry(archiveId)?.kind !== "skill" || !hasSkillFolder(options.skillsDirectory, archiveId)) {
+      if (getEntry(archiveId)?.kind !== "skill" || !redistributionLicense(archiveId).allowed || !hasSkillFolder(options.skillsDirectory, archiveId)) {
         response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Not found");
         return;
       }
@@ -100,7 +106,7 @@ export function serveHttp(factory: McpServerFactory, port: number, hosted?: Host
       response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Not found");
       return;
     }
-    if (hosted && !hasBearerToken(request.headers.authorization, hosted.tokenDigest)) {
+    if (hosted && !hasBearerToken(request.headers.authorization, hosted.tokenDigests)) {
       response.writeHead(401, { "WWW-Authenticate": 'Bearer realm="MTKit Catalog"', "Cache-Control": "no-store" }).end();
       return;
     }

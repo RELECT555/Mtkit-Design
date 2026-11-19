@@ -28,12 +28,18 @@ async function* walk(directory, prefix = "") {
   }
 }
 
+/** External skills without a recorded license are not redistributed by the server. */
+export async function unlicensedSkills(lockFile) {
+  const sources = JSON.parse(await readFile(lockFile, "utf8"));
+  return new Set(sources.filter(({ license }) => typeof license !== "string").flatMap(({ skills }) => Object.keys(skills)));
+}
+
 /** Reads every skill folder that has a SKILL.md and splits files into deliverable text and omitted. */
-export async function collectSkillPack(skillsDirectory) {
+export async function collectSkillPack(skillsDirectory, excluded = new Set()) {
   const pack = {};
   const folders = (await readdir(skillsDirectory, { withFileTypes: true })).filter(item => item.isDirectory());
   for (const folder of folders.sort((a, b) => (a.name < b.name ? -1 : 1))) {
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(folder.name)) continue;
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(folder.name) || excluded.has(folder.name)) continue;
     const root = join(skillsDirectory, folder.name);
     try {
       await stat(join(root, "SKILL.md"));
@@ -67,8 +73,8 @@ export async function collectSkillPack(skillsDirectory) {
   return pack;
 }
 
-export async function writeSkillPack(skillsDirectory, output) {
-  const pack = await collectSkillPack(skillsDirectory);
+export async function writeSkillPack(skillsDirectory, output, lockFile = join(skillsDirectory, "..", "..", "..", "packages", "catalog", "external-skills.json")) {
+  const pack = await collectSkillPack(skillsDirectory, await unlicensedSkills(lockFile));
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, gzipSync(JSON.stringify(pack), { level: 9 }));
   const files = Object.values(pack).reduce((sum, skill) => sum + Object.keys(skill.files).length, 0);

@@ -1,0 +1,83 @@
+# Builds the MTKit Catalog MCP image, runs it as in production and checks it end to end.
+# Pushes only when a container registry service connection is given.
+trigger: none
+pr: none
+
+parameters:
+  - name: containerRegistry
+    displayName: Docker registry service connection (empty = build and test only)
+    type: string
+    default: ''
+  - name: repository
+    displayName: Image repository in the registry
+    type: string
+    default: mtkit-catalog
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  image: mtkit-catalog:$(Build.SourceVersion)
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '24.x'
+
+  - script: npm ci --no-audit --no-fund
+    displayName: Install smoke test dependencies
+
+  # The Dockerfile runs type checks, unit tests and the process smoke test during the build.
+  - ${{ if eq(parameters.containerRegistry, '') }}:
+    - script: docker build --pull -t "$(image)" .
+      displayName: Build image
+  - ${{ else }}:
+    - task: Docker@2
+      displayName: Build image
+      inputs:
+        command: build
+        containerRegistry: ${{ parameters.containerRegistry }}
+        repository: ${{ parameters.repository }}
+        tags: $(Build.SourceVersion)
+        arguments: --pull -t $(image)
+
+  - script: |
+      set -euo pipefail
+      token=$(openssl rand -hex 32)
+      echo "##vso[task.setvariable variable=smokeToken;issecret=true]$token"
+      docker run -d --name mtkit-catalog-smoke \
+        -e MTKIT_PUBLIC_URL=https://localhost/mcp \
+        -e MTKIT_MCP_TOKEN="$token" \
+        -p 127.0.0.1:8080:8080 "$(image)"
+      status=starting
+      for attempt in $(seq 1 30); do
+        status=$(docker inspect --format '{{.State.Health.Status}}' mtkit-catalog-smoke)
+        [ "$status" = healthy ] && exit 0
+        sleep 2
+      done
+      echo "Container did not become healthy (last status: $status)"
+      exit 1
+    displayName: Start container
+
+  - script: node packages/mcp/smoke.mjs
+    displayName: Smoke test the running container
+    env:
+      MTKIT_SMOKE_URL: http://localhost:8080/mcp
+      MTKIT_SMOKE_PUBLIC_URL: https://localhost/mcp
+      MTKIT_SMOKE_TOKEN: $(smokeToken)
+
+  - script: |
+      docker logs mtkit-catalog-smoke || true
+      docker rm -f mtkit-catalog-smoke || true
+    displayName: Container logs and cleanup
+    condition: always()
+
+  # Push only an image that passed the container smoke test.
+  - ${{ if ne(parameters.containerRegistry, '') }}:
+    - task: Docker@2
+      displayName: Push image
+      inputs:
+        command: push
+        containerRegistry: ${{ parameters.containerRegistry }}
+        repository: ${{ parameters.repository }}
+        tags: $(Build.SourceVersion)

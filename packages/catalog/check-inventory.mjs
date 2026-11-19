@@ -21,6 +21,10 @@ const { catalogCounts, catalogEntries, planInstall, queryCatalog } = await impor
 const pluginMcp = catalogEntries.filter(({ kind, availability }) => kind === "mcp" && availability === "bundled");
 assert.deepEqual(pluginMcp.map(({ name }) => name).sort(), Object.keys(manifest).sort());
 
+for (const { repository, license } of lock) {
+  // null records a reviewed source with no license: its files are never served by the MCP.
+  assert(license === null || /^[A-Za-z0-9.+-]+$/.test(license), `Record the license for ${repository} (SPDX ID or null)`);
+}
 const lockedSkills = lock.flatMap(({ skills }) => Object.keys(skills));
 const authorSkills = (await readdir(new URL("skills/", plugin), { withFileTypes: true }))
   .filter((directory) => directory.isDirectory() && !lockedSkills.includes(directory.name))

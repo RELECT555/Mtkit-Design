@@ -2,6 +2,8 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { catalogCategories, catalogCounts, catalogEntries, getEntry, installClients, planBootstrap, planInstall, projectClients, queryCatalog, recommendForTask, skillCompanions, skillDirectories } from "@mtkit-design/catalog";
 import * as z from "zod/v4";
 import { version } from "./package.json";
+import { redistributionLicense } from "./licenses.js";
+import { registerPrompts } from "./prompts.js";
 import { readSkill, readSkillBundle } from "./skills.js";
 
 const inventoryUri = "mtkit://catalog/inventory";
@@ -71,6 +73,8 @@ export function createCatalogServer(options: CatalogOptions = {}) {
     { name: "mtkit-catalog", version },
     { instructions: "When MTKit is first used in an application project, call bootstrap_project for the current client. It returns the managed project rules and merge procedure. During authorized project setup, use the client's file tools to create or update only that block, preserve existing rules, and verify the result. Never write to the server filesystem as a substitute for client setup. For read-only or review-only work, follow the rules in-session and report setup as not persisted. Reuse a completed setup check for this project during the session. For TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short task description, then read selected installed skills or get_skill before applying them. Verify MCP tools in this client before using them; bundled means included in the plugin, not currently connected. To add a selected skill to the project, call install_skills for this client and write the returned files with the client's file tools, only when the user wants it installed; use plan_install for MCP servers and other missing dependencies. Respect the user's constraints and preserve the project's @mtkit/ui version and API. Use search_entries for direct searches and mtkit://catalog/inventory for the complete inventory." },
   );
+
+  registerPrompts(server);
 
   server.registerResource("inventory", inventoryUri, {
     title: "MTKit catalog inventory",
@@ -176,6 +180,7 @@ export function createCatalogServer(options: CatalogOptions = {}) {
       omitted: z.array(z.object({ path: z.string(), bytes: z.number(), reason: z.string() })),
       companionSkills: z.array(z.string()),
       requirements: z.array(z.string()),
+      license: z.string().nullable(),
       revision: z.string().optional(),
       instructions: z.array(z.string()),
       verification: z.string(),
@@ -187,6 +192,11 @@ export function createCatalogServer(options: CatalogOptions = {}) {
     }) }),
     annotations: readOnly,
   }, async ({ id, client, offset }) => {
+    const { allowed, license } = redistributionLicense(id);
+    if (!allowed) {
+      const source = getEntry(id)?.sourceUrl;
+      return { isError: true, content: [{ type: "text" as const, text: `This skill has no license that allows this server to redistribute it. Read its instructions with get_skill and install it from the upstream repository${source ? ` (${source})` : ""} if the user accepts its terms.` }] };
+    }
     try {
       const { files, total, nextOffset, omitted, revision, ...skill } = readSkillBundle(id, offset);
       const entry = getEntry(skill.id);
@@ -207,6 +217,7 @@ export function createCatalogServer(options: CatalogOptions = {}) {
         omitted,
         companionSkills: [...(skillCompanions[skill.id] ?? [])],
         requirements: [...(entry?.prerequisites ?? [])],
+        license: entry?.revision ? license : "MTKit",
         ...(revision ? { revision } : {}),
         instructions: [
           `Create each file under ${targetDirectory}/ at its path, creating folders as needed. Use the client's file tools in the current project, not the server filesystem.`,

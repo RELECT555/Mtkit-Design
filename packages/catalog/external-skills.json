@@ -2,6 +2,7 @@
   {
     "repository": "Leonxlnx/unlazy",
     "revision": "16671491f6679ad9378f52604d3bc2415b4120c7",
+    "license": "MIT",
     "skills": {
       "unlazy": "."
     }
@@ -9,6 +10,7 @@
   {
     "repository": "mohi-devhub/antivibe",
     "revision": "9991d12ec52bc0b90eeab893fef27398be1ef616",
+    "license": "MIT",
     "skills": {
       "antivibe": "."
     }
@@ -16,6 +18,7 @@
   {
     "repository": "Neeeophytee/finding-unknowns-skills",
     "revision": "ca5696a0f08d2de6b2997fff1d6cc05c3ed587cc",
+    "license": "MIT",
     "skills": {
       "agent-interface-design": "skills/agent-interface-design",
       "assumption-test": "skills/assumption-test",
@@ -36,6 +39,7 @@
   {
     "repository": "anthropics/skills",
     "revision": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+    "license": "Apache-2.0",
     "skills": {
       "frontend-design": "skills/frontend-design",
       "docx": "skills/docx",
@@ -47,6 +51,7 @@
   {
     "repository": "shadcn/ui",
     "revision": "dd41d19e2f80ff6891951f7ced74c2c9a650b065",
+    "license": "MIT",
     "skills": {
       "shadcn": "skills/shadcn"
     }
@@ -54,6 +59,7 @@
   {
     "repository": "shadcn/improve",
     "revision": "cac56e1ebd3c279aa9153616cfeac7b174ab90f9",
+    "license": "MIT",
     "skills": {
       "improve": "skills/improve"
     }
@@ -61,6 +67,7 @@
   {
     "repository": "Serg2000Mr/dual-review-file-based",
     "revision": "633f07629f30379566f7da7e13be32ab9eff35ec",
+    "license": null,
     "skills": {
       "claude-dual-review-file-based": "codex"
     }
@@ -68,6 +75,7 @@
   {
     "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
     "revision": "6ae86f61f520d6ca229d2f40e070410638c908c5",
+    "license": "MIT",
     "skills": {
       "ui-ux-pro-max": ".claude/skills/ui-ux-pro-max",
       "design-system": ".claude/skills/design-system",
@@ -77,6 +85,7 @@
   {
     "repository": "Leonxlnx/taste-skill",
     "revision": "f6b76575f949707b4e3c37cd86cb44b0b98643e8",
+    "license": "MIT",
     "skills": {
       "design-taste-frontend": "skills/taste-skill"
     }
@@ -84,6 +93,7 @@
   {
     "repository": "nutlope/hallmark",
     "revision": "04977e15f3dfd6ee4b74c887dac3eb52665d6c92",
+    "license": "MIT",
     "skills": {
       "hallmark": "skills/hallmark"
     }
@@ -91,6 +101,7 @@
   {
     "repository": "pbakaus/impeccable",
     "revision": "c4cd1924c389f68d37c687d9c2bbf13f12547c41",
+    "license": "Apache-2.0",
     "skills": {
       "impeccable": ".agents/skills/impeccable"
     }
@@ -98,6 +109,7 @@
   {
     "repository": "microsoft/playwright-cli",
     "revision": "b21724888b8100b05ef8dee3a92f2bb03bf4dcde",
+    "license": "Apache-2.0",
     "skills": {
       "playwright-cli": "skills/playwright-cli"
     }
@@ -105,6 +117,7 @@
   {
     "repository": "emilkowalski/skills",
     "revision": "f7ce8c02d6e3c8f0d980a44c57bcc41a40254349",
+    "license": "MIT",
     "skills": {
       "emil-design-eng": "skills/emil-design-eng",
       "review-animations": "skills/review-animations",
@@ -119,6 +132,7 @@
   {
     "repository": "addyosmani/web-quality-skills",
     "revision": "afa8da942115f2961fdbfa80807ea0b232ff6c00",
+    "license": "MIT",
     "skills": {
       "web-quality-audit": "skills/web-quality-audit",
       "accessibility": "skills/accessibility",
@@ -130,6 +144,7 @@
   {
     "repository": "vercel-labs/agent-skills",
     "revision": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+    "license": "MIT",
     "skills": {
       "vercel-react-best-practices": "skills/react-best-practices",
       "vercel-composition-patterns": "skills/composition-patterns",
@@ -139,6 +154,7 @@
   {
     "repository": "meodai/skill.color-expert",
     "revision": "5bf7c7704d56bccc6aeea38c36bcf449abe56a6c",
+    "license": "CC-BY-4.0",
     "skills": {
       "color-expert": "."
     }
@@ -146,6 +162,7 @@
   {
     "repository": "greensock/gsap-skills",
     "revision": "aed9cfd3277740755f6bfc1155c7aa645403b760",
+    "license": "MIT",
     "skills": {
       "gsap-core": "skills/gsap-core",
       "gsap-react": "skills/gsap-react",
@@ -160,6 +177,7 @@
   {
     "repository": "ibelick/ui-skills",
     "revision": "ba966a3aaa4080ab1836d350f3131584e2d4243a",
+    "license": "MIT",
     "skills": {
       "baseline-ui": "skills/baseline-ui",
       "improve-ui": "skills/improve-ui",
@@ -171,6 +189,7 @@
   {
     "repository": "jakubkrehel/make-interfaces-feel-better",
     "revision": "35545ea1512ad59fa463e6b1f95ca9c052981fe6",
+    "license": "MIT",
     "skills": {
       "make-interfaces-feel-better": "skills/make-interfaces-feel-better"
     }
@@ -178,6 +197,7 @@
   {
     "repository": "bergside/awesome-design-skills",
     "revision": "f631a09b4fcc0166f2e2c1a8c81906ef680c57e8",
+    "license": "MIT",
     "skills": {
       "clean": "skills/clean",
       "contemporary": "skills/contemporary",
@@ -194,6 +214,7 @@
   {
     "repository": "jakubkrehel/skills",
     "revision": "a72290d140249813898ba8648becf6415abcb059",
+    "license": "MIT",
     "skills": {
       "better-interface": "skills/better-interface",
       "build-design": "skills/build-design",

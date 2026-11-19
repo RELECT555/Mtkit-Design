@@ -24,6 +24,37 @@ const { catalogCategories, catalogCounts, catalogEntries } = await import(
   `data:text/javascript;base64,${Buffer.from(catalog.outputFiles[0].contents).toString("base64")}`
 );
 
+// Remote mode checks an already running deployment, such as the built container in CI:
+// MTKIT_SMOKE_URL=http://localhost:8080/mcp MTKIT_SMOKE_TOKEN=... MTKIT_SMOKE_PUBLIC_URL=https://localhost/mcp
+if (process.env.MTKIT_SMOKE_URL) {
+  const address = new URL(process.env.MTKIT_SMOKE_URL);
+  const publicOrigin = new URL(process.env.MTKIT_SMOKE_PUBLIC_URL ?? address.href).origin;
+  const remoteToken = process.env.MTKIT_SMOKE_TOKEN;
+  const headers = remoteToken ? { authorization: `Bearer ${remoteToken}` } : {};
+  if (remoteToken) {
+    assert.equal((await fetch(address)).status, 401, "The deployment must require the bearer token");
+    assert.equal((await fetch(new URL("/skills/design-screen.tar.gz", address))).status, 401);
+  }
+  assert.equal((await fetch(new URL("/healthz", address))).status, 200);
+  const remote = new Client({ name: "mtkit-remote-smoke", version: "1.0.0" });
+  await remote.connect(new StreamableHTTPClientTransport(address, { requestInit: { headers } }));
+  try {
+    await checkCatalog(remote);
+    await checkArchives(remote, address, { origin: publicOrigin, bearer: Boolean(remoteToken), headers });
+    // The image prepares the pinned external skills, so a third-party skill must be served in full.
+    const external = await remote.callTool({ name: "install_skills", arguments: { id: "accessibility", client: "claude-code" } });
+    assert(!external.isError, "External skills must be in the deployed skill pack");
+    assert(external.structuredContent.install.archive, "External skills must be downloadable from the deployment");
+    const archive = await fetch(new URL("/skills/design-taste-frontend.tar.gz", address), { headers });
+    assert.equal(archive.status, 200);
+    assert((await archive.arrayBuffer()).byteLength > 1_000_000, "Heavy skills must include their assets");
+  } finally {
+    await remote.close();
+  }
+  console.log(`Remote ${address.origin}: catalog, prompts, install_skills, archives, licenses and authorization passed`);
+  process.exit(0);
+}
+
 // Fail closed before accepting connections, including when the parent environment
 // happens to contain valid deployment credentials.
 for (const [args, overrides, expected] of [
@@ -34,6 +65,9 @@ for (const [args, overrides, expected] of [
   [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp/" }, /MTKIT_PUBLIC_URL/],
   [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp" }, /MTKIT_MCP_TOKEN/],
   [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp", MTKIT_MCP_TOKEN: "short" }, /MTKIT_MCP_TOKEN/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp", MTKIT_MCP_TOKEN: `${"a".repeat(32)},short` }, /MTKIT_MCP_TOKEN/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp", MTKIT_MCP_TOKEN: `${"a".repeat(32)},` }, /MTKIT_MCP_TOKEN/],
+  [["--hosted"], { MTKIT_PUBLIC_URL: "https://mcp.example/mcp", MTKIT_MCP_TOKEN: Array(9).fill("a".repeat(32)).join(",") }, /MTKIT_MCP_TOKEN/],
   [["--hosted"], { PORT: "65536" }, /PORT/],
 ]) {
   const result = spawnSync(process.execPath, [executable, ...args], {
@@ -55,6 +89,20 @@ async function checkCatalog(client) {
   assert.match(client.getInstructions() ?? "", /install_skills/);
   assert(client.getServerCapabilities()?.tools);
   assert(client.getServerCapabilities()?.resources);
+  assert(client.getServerCapabilities()?.prompts);
+  const prompts = await client.listPrompts();
+  assert.deepEqual(prompts.prompts.map(({ name }) => name).sort(), ["install", "pick", "setup"]);
+  const setupPrompt = await client.getPrompt({ name: "setup", arguments: { client: "cursor", task: "CRM на React" } });
+  const setupText = setupPrompt.messages[0].content.text;
+  for (const tool of ["bootstrap_project", "recommend_tools", "install_skills", "plan_install"]) assert.match(setupText, new RegExp(tool));
+  assert.match(setupText, /client "cursor"/);
+  assert.match(setupText, /Install nothing before I answer/);
+  assert.match((await client.getPrompt({ name: "setup", arguments: {} })).messages[0].content.text, /client "claude-code"/);
+  const installPrompt = (await client.getPrompt({ name: "install", arguments: { id: "design-screen" } })).messages[0].content.text;
+  assert.match(installPrompt, /library-docs, review-screen/);
+  assert.match((await client.getPrompt({ name: "install", arguments: { id: "no-such-entry" } })).messages[0].content.text, /search_entries/);
+  assert.match((await client.getPrompt({ name: "pick", arguments: { task: "a11y review" } })).messages[0].content.text, /Do not install anything/);
+  await assert.rejects(client.getPrompt({ name: "setup", arguments: { client: "unsupported" } }));
   const listing = await client.listTools();
   assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "get_entry", "get_skill", "install_skills", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
   const bootstrapTool = listing.tools.find(({ name }) => name === "bootstrap_project");
@@ -161,6 +209,7 @@ async function checkCatalog(client) {
     { id: "no-such-catalog-entry", client: "claude-code" },
     { id: "design-screen", client: "codex" },
     { id: "design-screen", client: "claude-code", offset: 999 },
+    { id: "claude-dual-review-file-based", client: "claude-code" },
   ]) {
     const result = await client.callTool({ name: "install_skills", arguments: arguments_ });
     assert.equal(result.isError, true, `Invalid install request must fail: ${JSON.stringify(arguments_)}`);
@@ -329,6 +378,7 @@ async function checkArchives(client, address, { origin, bearer, headers }) {
     assert.equal((await fetch(new URL(path, address), { headers })).status, 404, path);
   }
   assert.equal((await fetch(url, { method: "POST", headers })).status, 404, "Archives are read-only");
+  assert.equal((await fetch(new URL("/skills/claude-dual-review-file-based.tar.gz", address), { headers })).status, 404, "Unlicensed skills are never served");
 }
 
 function requestStatus(url, headers) {
@@ -357,11 +407,14 @@ await withHttpServer(["--http", "--port", "0"], {}, async (address, client) => {
 
 const host = "127.0.0.1";
 const token = randomBytes(32).toString("hex");
+const previousToken = randomBytes(32).toString("hex");
 await withHttpServer(["--hosted"], {
   PORT: "0",
   MTKIT_PUBLIC_URL: `https://${host}/mcp`,
-  MTKIT_MCP_TOKEN: token,
+  MTKIT_MCP_TOKEN: `${token}, ${previousToken}`,
 }, async (address, client) => {
+  assert.notEqual(await requestStatus(address, { host, authorization: `Bearer ${previousToken}` }), 401, "Every configured token is accepted during rotation");
+  assert.equal(await requestStatus(address, { host, authorization: `Bearer ${token},${previousToken}` }), 401, "A token list is never a valid credential");
   assert.equal(await requestStatus(new URL("/healthz", address)), 200);
   assert.equal(await requestStatus(address, { host: "unrelated.example" }), 403);
   assert.equal(await requestStatus(address, { host }), 401);
