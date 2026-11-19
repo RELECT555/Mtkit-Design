@@ -133,6 +133,13 @@
 .connect-instructions p { margin: 0; font-size: 14px; }
 .connect-instructions p .inline-link { display: inline; }
 .connect-instructions p code { overflow-wrap: anywhere; }
+.connect-first-run { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--catalog-line); }
+.connect-first-run h3 { margin: 0; font-size: 15px; }
+.connect-first-run ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.connect-first-run li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 14px; }
+.connect-first-run li code { overflow-wrap: anywhere; }
+.connect-first-run li span { color: var(--catalog-muted); }
+.connect-first-run-note { color: var(--catalog-muted); }
 
 @media (max-width: 760px) {
   .workflow { min-height: 350px; }

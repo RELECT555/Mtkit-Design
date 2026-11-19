@@ -105,6 +105,11 @@ async function checkCatalog(client) {
   assert.match((await client.getPrompt({ name: "pick", arguments: { task: "a11y review" } })).messages[0].content.text, /Do not install anything/);
   await assert.rejects(client.getPrompt({ name: "setup", arguments: { client: "unsupported" } }));
   assert.match((await client.getPrompt({ name: "update", arguments: {} })).messages[0].content.text, /check_skills/);
+  const completion = await client.complete({ ref: { type: "ref/prompt", name: "install" }, argument: { name: "id", value: "design" } });
+  assert.equal(completion.completion.values[0], "design-screen", "install suggests catalog IDs, prefix matches first");
+  assert(completion.completion.values.every(id => catalogEntries.some(entry => entry.id === id)));
+  const playwrightCompletion = await client.complete({ ref: { type: "ref/prompt", name: "install" }, argument: { name: "id", value: "Playwright" } });
+  assert(playwrightCompletion.completion.values.includes("playwright"), "Completion matches names case-insensitively");
   const listing = await client.listTools();
   assert.deepEqual(listing.tools.map(({ name }) => name).sort(), ["bootstrap_project", "check_skills", "get_entry", "get_skill", "install_skills", "list_categories", "plan_install", "recommend_tools", "search_entries"]);
   const bootstrapTool = listing.tools.find(({ name }) => name === "bootstrap_project");

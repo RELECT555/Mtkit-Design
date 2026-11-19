@@ -11,6 +11,16 @@ export const connectModes = [
   { id: "hosted", label: "Командный MCP" },
 ] as const;
 
+export const connectFirstRun = {
+  title: "Первые команды",
+  intro: "В новом чате запустите команду MTKit. Агент покажет, что собирается поставить, и спросит подтверждение.",
+  fallback: "Если клиент не показывает команды MCP, напишите агенту",
+  prompts: [
+    { id: "setup", description: "настроить проект, подобрать и поставить навыки и MCP", request: "Настрой MTKit в этом проекте" },
+    { id: "update", description: "проверить и обновить установленные навыки", request: "Проверь обновления навыков MTKit" },
+  ],
+} as const;
+
 export const connectNextStep = {
   intro: "Откройте новый чат",
   guidance: "в рабочем проекте. При первом использовании агент подготовит правила MTKit, если запись разрешена. Начните с",

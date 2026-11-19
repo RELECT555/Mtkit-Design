@@ -1,11 +1,11 @@
 import { Button } from "@mtkit/ui";
-import { catalogConnection, clientLabels, planInstall, startLocalCatalog, type InstallClient } from "@mtkit-design/catalog";
+import { catalogConnection, claudeCodeCommand, clientLabels, planInstall, promptCommand, startLocalCatalog, type InstallClient } from "@mtkit-design/catalog";
 import { useState } from "react";
 import { ClientPicker } from "../../shared/ClientPicker";
 import { Command } from "../../shared/Command";
 import { McpConfig } from "../../shared/McpConfig";
 import { codexCommand, hostedEndpoint } from "../../shared/connection";
-import { connectIntro, connectModes, connectNextStep } from "../home/content";
+import { connectFirstRun, connectIntro, connectModes, connectNextStep } from "../home/content";
 
 type Mode = typeof connectModes[number]["id"];
 
@@ -60,9 +60,38 @@ export function ConnectPanel() {
                   <p>Зарегистрируйте сервер в Codex.</p>
                   <Command value={codexCommand(mode)} />
                 </div>
-              ) : <McpConfig configuration={catalogConnection(client, mode === "hosted" ? hostedEndpoint : undefined)} />}
+              ) : (
+                <>
+                  {client === "claude-code" && (
+                    <div>
+                      <p>Зарегистрируйте сервер в проекте одной командой. Она запишет <code>.mcp.json</code> со ссылкой на переменную, без самого токена.</p>
+                      <Command value={claudeCodeCommand(mode === "hosted" ? hostedEndpoint : undefined)} />
+                    </div>
+                  )}
+                  {client === "claude-code" && <p>Или добавьте запись вручную.</p>}
+                  <McpConfig configuration={catalogConnection(client, mode === "hosted" ? hostedEndpoint : undefined)} />
+                </>
+              )}
             </>
           )}
+          <div className="connect-first-run">
+            <h3>{connectFirstRun.title}</h3>
+            <p>{connectFirstRun.intro}</p>
+            <ul>
+              {connectFirstRun.prompts.map(({ id, description, request }) => {
+                const command = mode === "plugin" ? undefined : promptCommand(client, id, mode === "hosted");
+                return (
+                  <li key={id}>
+                    <code>{command ?? `«${request}»`}</code>
+                    <span>{description}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            {mode !== "plugin" && promptCommand(client, "setup", mode === "hosted") && (
+              <p className="connect-first-run-note">{connectFirstRun.fallback}: «{connectFirstRun.prompts[0].request}».</p>
+            )}
+          </div>
           <p>{connectNextStep.intro} {clientLabels[client]} {connectNextStep.guidance} <a className="inline-link" href="/guide/">{connectNextStep.guideLabel}</a>.</p>
         </div>
       </div>

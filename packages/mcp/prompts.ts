@@ -1,5 +1,5 @@
-import type { McpServer } from "@modelcontextprotocol/server";
-import { getEntry, installClients, skillCompanions } from "@mtkit-design/catalog";
+import { completable, type McpServer } from "@modelcontextprotocol/server";
+import { catalogEntries, getEntry, installClients, skillCompanions } from "@mtkit-design/catalog";
 import * as z from "zod/v4";
 
 // Prompts are explicit user-started workflows (slash commands in Claude Code), so setup does not
@@ -43,7 +43,15 @@ export function registerPrompts(server: McpServer) {
     title: "Install an MTKit skill or MCP server",
     description: "Install one catalog entry, with its companion skills, into the current project.",
     argsSchema: z.object({
-      id: z.string().trim().min(1).max(100).describe("Catalog entry ID, for example design-screen or playwright."),
+      // Clients that support completion suggest catalog IDs while the user types.
+      id: completable(z.string().trim().min(1).max(100).describe("Catalog entry ID, for example design-screen or playwright."), value => {
+        const query = value.trim().toLowerCase();
+        return catalogEntries
+          .filter(({ id, name, title }) => !query || id.includes(query) || name.toLowerCase().includes(query) || title.toLowerCase().includes(query))
+          .sort((a, b) => Number(!a.id.startsWith(query)) - Number(!b.id.startsWith(query)) || a.id.localeCompare(b.id))
+          .slice(0, 100)
+          .map(({ id }) => id);
+      }),
       client,
     }),
   }, ({ id, client: chosen }) => {

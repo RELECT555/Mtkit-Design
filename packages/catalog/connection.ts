@@ -39,11 +39,37 @@ export function projectMcpConfiguration(client: ProjectClient, name: string, con
 
 export function catalogConnection(client: ProjectClient, hostedEndpoint?: string): ProjectConfiguration {
   const tokenReference = client === "cursor" ? "${env:MTKIT_MCP_TOKEN}" : "${MTKIT_MCP_TOKEN}";
-  return projectMcpConfiguration(client, hostedEndpoint ? "mtkit_catalog_remote" : "mtkit_catalog", {
+  return projectMcpConfiguration(client, catalogServerName(Boolean(hostedEndpoint)), {
     type: "http",
     url: hostedEndpoint ?? catalogEndpoint,
     ...(hostedEndpoint && { headers: { Authorization: `Bearer ${tokenReference}` } }),
   });
+}
+
+/** Server name used in client configuration; prompts and tools are addressed through it. */
+export function catalogServerName(hosted: boolean) {
+  return hosted ? "mtkit_catalog_remote" : "mtkit_catalog";
+}
+
+/**
+ * One-line Claude Code registration in the project's .mcp.json. Single quotes keep
+ * ${MTKIT_MCP_TOKEN} literal in bash and PowerShell, so the file stores the reference, not the secret.
+ */
+export function claudeCodeCommand(hostedEndpoint?: string) {
+  const name = catalogServerName(Boolean(hostedEndpoint));
+  const auth = hostedEndpoint ? " --header 'Authorization: Bearer ${MTKIT_MCP_TOKEN}'" : "";
+  return `claude mcp add --transport http --scope project ${name} ${hostedEndpoint ?? catalogEndpoint}${auth}`;
+}
+
+export const catalogPrompts = ["setup", "install", "update", "pick"] as const;
+export type CatalogPrompt = typeof catalogPrompts[number];
+
+/** How a user starts an MCP prompt in each client, or undefined when the client has no prompt command. */
+export function promptCommand(client: InstallClient, prompt: CatalogPrompt, hosted: boolean) {
+  const name = catalogServerName(hosted);
+  if (client === "claude-code") return `/mcp__${name}__${prompt}`;
+  if (client === "vscode") return `/mcp.${name}.${prompt}`;
+  return undefined;
 }
 
 export function parseHostedEndpoint(value: string): URL {

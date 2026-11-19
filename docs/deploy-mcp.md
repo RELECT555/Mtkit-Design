@@ -103,6 +103,14 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://mcp.company.example/mcp
 codex mcp add mtkit_catalog_remote --url https://mcp.company.example/mcp --bearer-token-env-var MTKIT_MCP_TOKEN
 ```
 
+В Claude Code из корня рабочего проекта. Одинарные кавычки сохраняют ссылку на переменную: в `.mcp.json` попадёт `${MTKIT_MCP_TOKEN}`, а не сам токен.
+
+```bash
+claude mcp add --transport http --scope project mtkit_catalog_remote https://mcp.company.example/mcp --header 'Authorization: Bearer ${MTKIT_MCP_TOKEN}'
+```
+
+В новом чате Claude Code запустите `/mcp__mtkit_catalog_remote__setup`. Агент настроит проект, предложит навыки и MCP и поставит выбранные. Сайт с адресом в `VITE_MTKIT_MCP_URL` показывает эти команды для каждого клиента.
+
 Попросите Codex использовать именно `mtkit_catalog_remote`, получить настройку проекта через `bootstrap_project`, подобрать инструменты для экрана поставщиков через `recommend_tools`, прочитать `design-screen` через `get_skill`, найти Playwright через `search_entries`, открыть карточку через `get_entry` и запросить `plan_install`. Для проверки исходящего доступа прочитайте внешний навык `accessibility` через `get_skill`. Для проверки архивов выполните `curl -fsS -H "Authorization: Bearer $MTKIT_MCP_TOKEN" -o /dev/null -w '%{http_code}
 ' https://mcp.company.example/skills/design-screen.tar.gz`: ожидается `200`, без токена `401`. Успешные ответы подтверждают путь через TLS, прокси и авторизацию. В тестовом рабочем проекте проверьте, что агент добавил один блок MTKit и сохранил существующие правила. При режиме без записи он должен сообщить, что настройка применена только в сеансе. Отдельно проверьте запуск выбранного браузерного MCP на рабочей машине: получение плана установки не подтверждает его подключение.
 

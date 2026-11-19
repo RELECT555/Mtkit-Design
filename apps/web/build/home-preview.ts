@@ -1,5 +1,5 @@
 import { catalogCounts, clientLabels, getEntry, installClients, planInstall, recommendForTask } from "../../../packages/catalog/index.ts";
-import { connectIntro, connectModes, connectNextStep, featuredToolIds, heroContent, workflowExample } from "../src/features/home/content.ts";
+import { connectFirstRun, connectIntro, connectModes, connectNextStep, featuredToolIds, heroContent, workflowExample } from "../src/features/home/content.ts";
 import { escapeHtml } from "./preview-markup.ts";
 
 export function homePreview(hasHostedEndpoint: boolean) {
@@ -48,6 +48,7 @@ export function homePreview(hasHostedEndpoint: boolean) {
       <div class="switcher" inert>${connectModes.filter(({ id }) => id !== "hosted" || hasHostedEndpoint).map(({ id, label }) => `<button type="button" aria-pressed="${id === "plugin"}">${label}</button>`).join("")}</div>
       <div class="connect-instructions">
         ${pluginCommands ? `<div><p>Выполните команды в корне репозитория MTKit Design.</p><div class="command"><code>${escapeHtml(pluginCommands)}</code><div class="copy-action" inert><button type="button">Копировать</button></div></div></div>` : ""}
+        <div class="connect-first-run"><h3>${connectFirstRun.title}</h3><p>${connectFirstRun.intro}</p><ul>${connectFirstRun.prompts.map(({ description, request }) => `<li><code>«${escapeHtml(request)}»</code><span>${escapeHtml(description)}</span></li>`).join("")}</ul></div>
         <p>${connectNextStep.intro} ${clientLabels.codex} ${connectNextStep.guidance} <a class="inline-link" href="/guide/">${connectNextStep.guideLabel}</a>.</p>
       </div>
     </div>
