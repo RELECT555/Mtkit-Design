@@ -6,7 +6,7 @@ import { createMcpHandler, type McpServerFactory } from "@modelcontextprotocol/s
 import { catalogPath, getEntry, parseHostedEndpoint } from "@mtkit-design/catalog";
 import { archivePathPattern, createSkillArchive, hasSkillFolder, type ExtraFile } from "./archive.js";
 import { redistributionLicense } from "./licenses.js";
-import { logEvent } from "./log.js";
+import { logEvent, withLogFields } from "./log.js";
 
 interface HostedConfig {
   publicUrl: URL;
@@ -43,6 +43,11 @@ function bearerTokenIndex(authorization: string | undefined, expectedDigests: re
   const digest = createHash("sha256").update(token).digest();
   // Compare against every configured token so timing does not reveal which one matched.
   return expectedDigests.reduce((matched, expected, index) => (timingSafeEqual(digest, expected) ? index : matched), -1);
+}
+
+/** A method or tool name from a standard MCP header; anything else is dropped rather than logged. */
+function mcpHeader(value: string | string[] | undefined) {
+  return typeof value === "string" && /^[\w./-]{1,64}$/.test(value) ? value : undefined;
 }
 
 export interface HttpOptions {
@@ -153,10 +158,18 @@ export function serveHttp(factory: McpServerFactory, port: number, hosted?: Host
     }
 
     if (hosted) response.setHeader("Cache-Control", "no-store");
+    // 2026-era clients name the MCP method (and the tool or prompt) in headers, so a session's
+    // server/discover and tool calls can be counted without reading the request body.
+    const mcpMethod = mcpHeader(request.headers["mcp-method"]);
+    const mcpName = mcpMethod === "tools/call" || mcpMethod === "prompts/get" ? mcpHeader(request.headers["mcp-name"]) : undefined;
     response.once("finish", () => {
-      logEvent({ event: "request", token, method: request.method, status: response.statusCode, ms: Math.round(performance.now() - started) });
+      logEvent({
+        event: "request", token, method: request.method,
+        ...(mcpMethod && { mcp: mcpMethod }), ...(mcpName && { name: mcpName }),
+        status: response.statusCode, ms: Math.round(performance.now() - started),
+      });
     });
-    void handleRequest(request, response).catch((error: unknown) => {
+    void withLogFields({ token }, () => handleRequest(request, response)).catch((error: unknown) => {
       logEvent({ event: "request_failed", token, error: error instanceof Error ? error.name : "unknown" });
       if (response.headersSent) response.destroy();
       else response.writeHead(500).end();

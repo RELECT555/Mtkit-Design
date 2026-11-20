@@ -26,9 +26,19 @@ test("remote clients can read authored skills and every bundled reference offlin
   }
 });
 
+// Skills without a redistribution license are never in the skill pack, so they are always read from GitHub.
+const unpacked = "claude-dual-review-file-based";
+const packedExternal = (() => {
+  try {
+    return readSkillBundle("accessibility").files.length > 0;
+  } catch {
+    return false; // External skills were not prepared before the pack was built.
+  }
+})();
+
 test("external instruction retrieval uses the pinned revision and bounded fetch", async () => {
-  const skill = await readSkill("accessibility", undefined, async (url, options) => {
-    assert.match(url, /^https:\/\/raw\.githubusercontent\.com\/addyosmani\/web-quality-skills\/[a-f0-9]{40}\/skills\/accessibility\/SKILL\.md$/);
+  const skill = await readSkill(unpacked, undefined, async (url, options) => {
+    assert.match(url, /^https:\/\/raw\.githubusercontent\.com\/Serg2000Mr\/dual-review-file-based\/[a-f0-9]{40}\/codex\/SKILL\.md$/);
     assert(options.signal instanceof AbortSignal);
     assert.equal(options.redirect, "error");
     return new Response("# Accessibility\nCheck keyboard navigation.");
@@ -45,11 +55,20 @@ test("non-skills, scripts and paths outside the skill never trigger network requ
   await assert.rejects(readSkill("design-screen", "references/missing.md", noNetwork), /Choose one of/);
 });
 
+test("external skills built into the pack are read without network access", { skip: !packedExternal && "external skills are not prepared" }, async () => {
+  const skill = await readSkill("accessibility", undefined, noNetwork);
+  assert.equal(skill.source, "skill-pack:accessibility/SKILL.md");
+  assert.match(skill.revision, /^[a-f0-9]{40}$/);
+  assert.match(skill.content, /^---\r?\nname:/);
+  assert(skill.files.includes("SKILL.md"));
+  await assert.rejects(readSkill("accessibility", "references/missing.md", noNetwork), /Choose one of/);
+});
+
 test("upstream failures are actionable and never reported as loaded skills", async () => {
   for (const response of [new Response("missing", { status: 404 }), new Response(""), new Response("x", { headers: { "Content-Length": "300000" } }), new Response("x".repeat(262145))]) {
-    await assert.rejects(readSkill("accessibility", undefined, async () => response), /The skill was not loaded/);
+    await assert.rejects(readSkill(unpacked, undefined, async () => response), /The skill was not loaded/);
   }
-  await assert.rejects(readSkill("accessibility", undefined, async () => { throw new Error("fetch failed"); }), /Read the installed skill locally/);
+  await assert.rejects(readSkill(unpacked, undefined, async () => { throw new Error("fetch failed"); }), /Read the installed skill locally/);
 });
 
 test("authored skills install as complete file sets with integrity hashes", () => {

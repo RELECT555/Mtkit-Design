@@ -4,7 +4,7 @@ import * as z from "zod/v4";
 import { version } from "./package.json";
 import { redistributionLicense } from "./licenses.js";
 import { registerPrompts } from "./prompts.js";
-import { logEvent } from "./log.js";
+import { logEvent, missedTaskText } from "./log.js";
 import { manifestFile, readSkill, readSkillBundle, skillManifest, skillVersion } from "./skills.js";
 
 const inventoryUri = "mtkit://catalog/inventory";
@@ -35,6 +35,7 @@ const recommendationOutput = z.object({
     title: z.string(),
     availability: z.enum(["bundled", "optional"]),
     reason: z.string(),
+    match: z.enum(["rule", "tags"]).describe("rule: curated routing for this kind of task; tags: ranked by the entry's name and tags, so confirm it fits before applying it."),
     installWith: z.enum(["install_skills", "plan_install"]),
   })),
 });
@@ -75,16 +76,24 @@ export function createCatalogServer(options: CatalogOptions = {}) {
     { instructions: "When MTKit is first used in an application project, call bootstrap_project for the current client. It returns the managed project rules and merge procedure. During authorized project setup, use the client's file tools to create or update only that block, preserve existing rules, and verify the result. Never write to the server filesystem as a substitute for client setup. For read-only or review-only work, follow the rules in-session and report setup as not persisted. Reuse a completed setup check for this project during the session. For TypeScript frontend design, implementation, UI review, or library documentation, call recommend_tools with a short task description, then read selected installed skills or get_skill before applying them. Verify MCP tools in this client before using them; bundled means included in the plugin, not currently connected. To add a selected skill to the project, call install_skills for this client and write the returned files with the client's file tools, only when the user wants it installed; use plan_install for MCP servers and other missing dependencies. Respect the user's constraints and preserve the project's @mtkit/ui version and API. Use search_entries for direct searches and mtkit://catalog/inventory for the complete inventory." },
   );
 
-  // Time every tool call for the operator log. Only the tool name and outcome are recorded.
+  // Client name and version from the 2025 initialize handshake or the 2026 per-request envelope.
+  const client = () => {
+    const info = server.server.getClientVersion();
+    return info ? { client: info.name.slice(0, 80), clientVersion: info.version.slice(0, 40) } : {};
+  };
+  // A 2025-era client starts a session with initialize; 2026-era requests are logged with their Mcp-Method header.
+  server.server.oninitialized = () => logEvent({ event: "session", ...client() });
+
+  // Time every tool call for the operator log. Only the tool name, client and outcome are recorded.
   const register = server.registerTool.bind(server) as (...args: unknown[]) => unknown;
   server.registerTool = ((name: string, config: unknown, callback: (...args: unknown[]) => unknown) => register(name, config, async (...args: unknown[]) => {
     const started = performance.now();
     try {
       const result = await callback(...args) as { isError?: boolean };
-      logEvent({ event: "tool", tool: name, ms: Math.round(performance.now() - started), ok: !result?.isError });
+      logEvent({ event: "tool", tool: name, ...client(), ms: Math.round(performance.now() - started), ok: !result?.isError });
       return result;
     } catch (error) {
-      logEvent({ event: "tool", tool: name, ms: Math.round(performance.now() - started), ok: false, error: error instanceof Error ? error.name : "unknown" });
+      logEvent({ event: "tool", tool: name, ...client(), ms: Math.round(performance.now() - started), ok: false, error: error instanceof Error ? error.name : "unknown" });
       throw error;
     }
   })) as typeof server.registerTool;
@@ -131,10 +140,19 @@ export function createCatalogServer(options: CatalogOptions = {}) {
     }),
     outputSchema: recommendationOutput,
     annotations: readOnly,
-  }, async ({ task }) => jsonResult({
-    projectSetup: { tool: "bootstrap_project", instruction: "If MTKit project setup has not yet been checked in this session, request bootstrap_project for your client. Apply only during authorized setup; for read-only or review-only work follow its guidance in-session. Reuse an existing setup check." },
-    recommendations: recommendForTask(task).map(({ entry: { id, kind, name, title, availability }, reason }) => ({ id, kind, name, title, availability, reason, installWith: kind === "skill" ? "install_skills" as const : "plan_install" as const })),
-  }));
+  }, async ({ task }) => {
+    const recommendations = recommendForTask(task);
+    const count = (match: string) => recommendations.filter(item => item.match === match).length;
+    logEvent({
+      event: "recommend", ...client(), rule: count("rule"), tags: count("tags"),
+      ids: recommendations.map(({ entry }) => entry.id),
+      ...(recommendations.length === 0 && missedTaskText(task) ? { task: missedTaskText(task) } : {}),
+    });
+    return jsonResult({
+      projectSetup: { tool: "bootstrap_project", instruction: "If MTKit project setup has not yet been checked in this session, request bootstrap_project for your client. Apply only during authorized setup; for read-only or review-only work follow its guidance in-session. Reuse an existing setup check." },
+      recommendations: recommendations.map(({ entry: { id, kind, name, title, availability }, reason, match }) => ({ id, kind, name, title, availability, reason, match, installWith: kind === "skill" ? "install_skills" as const : "plan_install" as const })),
+    });
+  });
 
   server.registerTool("search_entries", {
     title: "Search the MTKit catalog",
@@ -162,7 +180,7 @@ export function createCatalogServer(options: CatalogOptions = {}) {
 
   server.registerTool("get_skill", {
     title: "Read a skill's instructions",
-    description: "Read SKILL.md or a Markdown reference before applying a selected skill. First-party MTKit instructions are included in the server. External guidance is read from the catalog's pinned GitHub revision and requires network access. This reads guidance only; helper scripts and MCP servers must be installed and used in the client environment.",
+    description: "Read SKILL.md or a Markdown reference before applying a selected skill. First-party MTKit instructions and licensed external skills (at their pinned revision) are included in the server and need no network access. Markdown files over 48 KiB and skills the server may not redistribute are read from the pinned GitHub revision and need network access. This reads guidance only; helper scripts and MCP servers must be installed and used in the client environment.",
     inputSchema: z.strictObject({
       id: entryId,
       path: z.string().trim().min(1).max(240).default("SKILL.md").describe("Markdown path relative to the skill folder, for example references/mtkit.md. For sibling skills use their own catalog entry ID."),

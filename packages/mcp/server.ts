@@ -21,7 +21,7 @@ function findSkillsDirectory(env: NodeJS.ProcessEnv) {
 
 /** Starts an HTTP transport that also serves skill archives when the skill folders are present. */
 function start(port: number, hosted?: ReturnType<typeof readHostedConfig>) {
-  enableLogging();
+  enableLogging({ missedTasks: process.env.MTKIT_LOG_MISSED_TASKS === "1" });
   const skillsDirectory = findSkillsDirectory(process.env);
   const options: CatalogOptions = {};
   const enable = (origin: string) => {

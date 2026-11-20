@@ -16,6 +16,8 @@
     "catalog:test": "node --test packages/catalog/*.test.mjs packages/mcp/*.test.mjs",
     "catalog:integrations": "node packages/mcp/integrations.mjs",
     "catalog:agent-eval": "node packages/mcp/agent-evaluation.mjs",
+    "catalog:usage": "node packages/mcp/usage-report.mjs",
+    "catalog:updates": "node scripts/check-skill-updates.mjs",
     "install:test": "node --test scripts/*.test.mjs",
     "project:setup": "node scripts/setup-project.mjs",
     "web:dev": "npm --prefix apps/web run dev",

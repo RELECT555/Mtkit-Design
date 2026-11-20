@@ -1,0 +1,18 @@
+# Render Blueprint for a temporary test deployment of the MTKit Catalog MCP.
+# Production hosting is described in docs/deploy-mcp.md.
+services:
+  - type: web
+    name: mtkit-catalog
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      # https://<service>.onrender.com/mcp — no trailing slash.
+      - key: MTKIT_PUBLIC_URL
+        sync: false
+      # Random secret, e.g. `openssl rand -hex 32`.
+      - key: MTKIT_MCP_TOKEN
+        sync: false
+      - key: PORT
+        value: "8080"

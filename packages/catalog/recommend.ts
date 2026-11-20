@@ -1,12 +1,17 @@
-import { getEntry } from "./entries.js";
+import { catalogEntries, getEntry } from "./entries.js";
+import { normalize } from "./search.js";
 import type { CatalogEntry } from "./types.js";
 
 export interface TaskRecommendation {
   entry: CatalogEntry;
   reason: string;
+  /** "rule" for curated routing, "tags" for entries ranked by their own name and tags. */
+  match: "rule" | "tags";
 }
 
 const recommendationLimit = 6;
+const rankedLimit = 2;
+const rankedMinimumScore = 6;
 const screen = /\b(?:ui|frontend|front end|screens?|pages?|landing|dashboards?|layouts?|mockups?|interfaces?|forms?|dialogs?|modals?|buttons?|web app)\b|экран|интерфейс|страниц[ауые]|лендинг|фронтенд|дашборд|макет|верстк|диалог|модальн|кнопк|(?:^| )форм[ауые](?: |$)/u;
 const crm = /\bcrm\b|(?:^| )срм(?: |$)/u;
 const create = /\b(?:build|create|make|add|redesign|implement|prototype)\b|(?:^|\b(?:and|then|to) )design\b|\bdesign (?:a|an|the|this|our|my|new)\b|сдела(?:й|ть)|созда(?:й|ть)|соб(?:ери|рать)|добав|спроектир|реализ|редизайн|сверста/u;
@@ -51,6 +56,75 @@ function hasSuppliedReference(text: string) {
   return /\b(?:from|match|recreate|replicate)\b.*\b(?:mockup|screenshot|figma|reference)\b|\b(?:supplied|attached|provided) (?:figma )?(?:mockup|screenshot|reference)\b|по (?:приложенн\p{L}* |предоставленн\p{L}* )?(?:макет|скриншот|референс)|на основе (?:макет|скриншот)/u.test(text);
 }
 
+// Ranking by each entry's own ID and tags lets new skills surface without a new rule.
+// Words shared by many entries (category tags such as "ui" or "анимация") weigh little,
+// so a match needs specific vocabulary: at least two task words and a minimum score.
+const taskStopWords = new Set([
+  "a", "an", "and", "are", "can", "do", "for", "from", "help", "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "our", "please", "the", "this", "to", "use", "we", "with", "you",
+  "в", "во", "для", "и", "или", "как", "мне", "на", "найди", "не", "нужен", "нужна", "нужно", "по", "под", "помоги", "при", "с", "сделай", "со", "хочу", "что", "это",
+  // Generic review verbs say what to do, not which specialist fits.
+  "check", "review", "verify", "проверь", "проверить", "проверка", "проверку", "ревью", "только",
+]);
+
+// Entries the curated rules route. Ranking never adds them: when a rule leaves one out (for example
+// design-screen in a review-only task), that is a decision, not a gap. recommend.test.mjs keeps this
+// list in step with the add() calls below.
+export const ruleRoutedIds: ReadonlySet<string> = new Set([
+  "accessibility", "antivibe", "baseline-ui", "build-design", "chrome-devtools", "color-expert", "context7",
+  "core-web-vitals", "design-screen", "design-system", "fixing-accessibility", "fixing-motion-performance",
+  "gsap-core", "gsap-react", "library-docs", "next-devtools", "performance", "playwright", "review-animations",
+  "review-screen", "seo", "shadcn", "shadcn-mcp", "ui-ux-pro-max", "vercel-react-best-practices",
+]);
+
+const rankable = catalogEntries
+  .filter(entry => entry.id !== "mtkit-catalog" && !ruleRoutedIds.has(entry.id))
+  .map(entry => ({
+    entry,
+    identity: [...new Set(normalize(`${entry.id} ${entry.name}`).split(" "))],
+    tags: [...new Set(normalize(entry.tags.join(" ")).split(" "))],
+  }));
+
+const wordFrequency = new Map<string, number>();
+for (const { identity, tags } of rankable) {
+  for (const word of new Set([...identity, ...tags])) wordFrequency.set(word, (wordFrequency.get(word) ?? 0) + 1);
+}
+
+function wordWeight(word: string) {
+  return Math.log(rankable.length / (wordFrequency.get(word) ?? rankable.length));
+}
+
+// Stricter than search: a Russian word form may differ only in its ending, so
+// "проекта" does not match "проектирование" while "презентацию" matches "презентация".
+function sameWord(word: string, term: string) {
+  if (word === term) return true;
+  if (term.length >= 4 && word.startsWith(term) && word.length - term.length <= 3) return true;
+  if (term.length < 5 || word.length < 5 || !/^[а-я]+$/u.test(term)) return false;
+  let common = 0;
+  while (common < word.length && word[common] === term[common]) common++;
+  return common >= Math.max(word.length, term.length) - 3;
+}
+
+function rankByTags(text: string) {
+  const terms = [...new Set(text.split(" ").filter(term => term.length >= 2 && !taskStopWords.has(term)))];
+  if (terms.length < 2) return [];
+  return rankable.flatMap(({ entry, identity, tags }) => {
+    let score = 0;
+    const matched: string[] = [];
+    for (const term of terms) {
+      const best = Math.max(
+        ...identity.filter(word => sameWord(word, term)).map(word => wordWeight(word) * 1.5),
+        ...tags.filter(word => sameWord(word, term)).map(wordWeight),
+        0,
+      );
+      if (best > 0) {
+        score += best;
+        matched.push(term);
+      }
+    }
+    return matched.length >= 2 && score >= rankedMinimumScore ? [{ entry, score, matched }] : [];
+  }).sort((a, b) => b.score - a.score);
+}
+
 export function recommendForTask(task: string): TaskRecommendation[] {
   const text = positiveTaskText(task);
   const hasScreen = screen.test(text);
@@ -70,7 +144,7 @@ export function recommendForTask(task: string): TaskRecommendation[] {
 
   function add(id: string, reason: string, target = recommendations) {
     const entry = getEntry(id);
-    if (entry) target.push({ entry, reason });
+    if (entry) target.push({ entry, reason, match: "rule" });
   }
 
   if (needsDesign) add("design-screen", "Helps design and implement the requested screen with the project's existing components and MTKit UI.");
@@ -124,5 +198,12 @@ export function recommendForTask(task: string): TaskRecommendation[] {
   if (/\bnext js\b/u.test(text) && /\b(?:dev server|errors|logs|routes|runtime)\b|ошибк|лог|маршрут/u.test(text)) {
     add("next-devtools", "Inspects errors, routes and logs in a running Next.js 16+ app; requires the optional Next.js DevTools MCP.", companions);
   }
-  return [...recommendations.slice(0, recommendationLimit - companions.length), ...companions];
+  const curated = recommendations.slice(0, recommendationLimit - companions.length);
+  const chosen = new Set([...curated, ...companions].map(({ entry }) => entry.id));
+  const room = Math.min(rankedLimit, recommendationLimit - chosen.size);
+  const ranked: TaskRecommendation[] = rankByTags(text)
+    .filter(({ entry }) => !chosen.has(entry.id))
+    .slice(0, Math.max(0, room))
+    .map(({ entry, matched }) => ({ entry, reason: `Its name and tags match the task (${matched.join(", ")}). ${entry.kind === "skill" ? "Read its SKILL.md" : "Check its catalog card"} to confirm it fits before using it.`, match: "tags" }));
+  return [...curated, ...ranked, ...companions];
 }

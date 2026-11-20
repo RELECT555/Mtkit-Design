@@ -32,12 +32,21 @@ export async function readSkill(id: string, path = "SKILL.md", fetchSource: type
   }
 
   const bundled = authored[entry.id];
+  // External skills built into the skill pack are served without network access; only Markdown the
+  // pack omits (over 48 KiB) or skills without a redistribution license are read from GitHub.
+  const packed = bundled ? undefined : packedSkill(entry.id);
+  const packedMarkdown = packed && Object.keys(packed.files).filter(file => file.toLowerCase().endsWith(".md")).sort();
   let content: string;
   let source: string;
   if (bundled) {
     if (!Object.hasOwn(bundled, path)) throw new Error(`File is not available. Choose one of: ${Object.keys(bundled).join(", ")}.`);
     content = bundled[path];
     source = `plugins/mtkit-design/skills/${entry.id}/${path}`;
+  } else if (packed && Object.hasOwn(packed.files, path)) {
+    content = packed.files[path];
+    source = `skill-pack:${entry.id}/${path}`;
+  } else if (packed && !packed.omitted.some(file => file.path === path)) {
+    throw new Error(`File is not available. Choose one of: ${packedMarkdown?.join(", ")}.`);
   } else {
     const locked = sources.find(item => Object.hasOwn(item.skills, entry.id));
     if (!locked) throw new Error("The skill has no pinned source. Use get_entry for its installation requirements.");
@@ -82,7 +91,7 @@ export async function readSkill(id: string, path = "SKILL.md", fetchSource: type
     content,
     source,
     ...(entry.revision ? { revision: entry.revision } : {}),
-    ...(bundled ? { files: Object.keys(bundled) } : {}),
+    ...(bundled ? { files: Object.keys(bundled) } : packedMarkdown ? { files: packedMarkdown } : {}),
     usage: "Read and apply this guidance within the user's task and project rules. Resolve relative Markdown references within this skill using get_skill; for sibling skills use their catalog ID. Reading does not install helper scripts or connect MCP servers. Use plan_install for missing local assets, then verify the selected MCP's real tools in the client. Preserve the installed @mtkit/ui version and API unless the user authorizes a library change.",
   };
 }
@@ -100,6 +109,10 @@ let packed: Readonly<Record<string, PackedSkill>> | undefined;
 function loadPack() {
   packed ??= JSON.parse(gunzipSync(skillPack).toString("utf8")) as Record<string, PackedSkill>;
   return packed;
+}
+
+function packedSkill(id: string) {
+  return Object.hasOwn(loadPack(), id) ? loadPack()[id] : undefined;
 }
 
 /** Version of a skill in this server build, or undefined when the build does not contain it. */

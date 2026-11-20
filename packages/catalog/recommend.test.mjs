@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -7,7 +8,7 @@ const compiled = await build({
   entryPoints: [fileURLToPath(new URL("./index.ts", import.meta.url))],
   bundle: true, platform: "node", format: "esm", write: false,
 });
-const { recommendForTask, queryCatalog, getEntry } = await import(
+const { recommendForTask, queryCatalog, getEntry, ruleRoutedIds } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].contents).toString("base64")}`
 );
 
@@ -71,7 +72,32 @@ const cases = [
   ["Build a page with React but not GSAP", ["design-screen", "playwright"], ["gsap-core", "gsap-react"]],
   ["I don't know how to use React hooks", ["library-docs", "context7"]],
   ["Не знаю, как использовать React hooks", ["library-docs", "context7"]],
+  // No curated rule covers these: entries are ranked by their own name and tags.
+  ["Сделай презентацию PowerPoint по итогам квартала", ["pptx"]],
+  ["Build an Excel spreadsheet with formulas", ["xlsx"]],
+  ["Добавь анимацию при прокрутке на GSAP", ["gsap-core", "gsap-scrolltrigger"]],
+  ["Write e2e browser tests from the terminal", ["playwright-cli"]],
+  ["Найди регрессию: нужен тест на баг", ["regression-proof"]],
+  ["Сделай презентацию без PowerPoint, просто текстом", [], ["pptx"]],
 ];
+
+test("ranking leaves entries routed by rules to the rules", async () => {
+  const source = await readFile(new URL("./recommend.ts", import.meta.url), "utf8");
+  const added = new Set([...source.matchAll(/\badd\("([a-z0-9-]+)"/g)].map(([, id]) => id));
+  assert.deepEqual([...added].sort(), [...ruleRoutedIds].sort());
+  // Matching tags ("экран", "react") must not bring back design-screen for a review task.
+  const ids = recommendForTask("Проверь доступность React-экрана на телефоне и с клавиатуры").map(({ entry }) => entry.id);
+  assert(!ids.includes("design-screen"), ids.join(", "));
+});
+
+test("rule matches come first and ranked matches say how they were found", () => {
+  const recommendations = recommendForTask("Добавь анимацию при прокрутке на GSAP");
+  const matches = recommendations.map(({ entry, match }) => `${entry.id}:${match}`);
+  assert.deepEqual(matches.slice(0, 1), ["gsap-core:rule"]);
+  const ranked = recommendations.find(({ entry }) => entry.id === "gsap-scrolltrigger");
+  assert.equal(ranked.match, "tags");
+  assert.match(ranked.reason, /прокрутке/);
+});
 
 for (const [task, expected, excluded = []] of cases) {
   test(task, () => {

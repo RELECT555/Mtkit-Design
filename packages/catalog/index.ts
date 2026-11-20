@@ -1,7 +1,7 @@
 export * from "./connection.js";
 export { catalogCategories, catalogCounts, catalogEntries, getEntry } from "./entries.js";
 export { planInstall, skillCompanions, startLocalCatalog } from "./install.js";
-export { recommendForTask, type TaskRecommendation } from "./recommend.js";
+export { recommendForTask, ruleRoutedIds, type TaskRecommendation } from "./recommend.js";
 export { queryCatalog, searchEntries } from "./search.js";
 export type { CatalogEntry, CatalogPage, EntryAvailability, EntryKind, InstallPlan, InstallStep, SearchOptions } from "./types.js";
 export { planBootstrap } from "./bootstrap.js";

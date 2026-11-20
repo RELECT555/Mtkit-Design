@@ -6,7 +6,7 @@ const stopWords = new Set([
   "в", "дайте", "для", "и", "мне", "на", "найди", "навык", "навыки", "нужен", "нужны", "покажи", "по", "под", "скилл", "скиллы", "хочу",
 ]);
 
-function normalize(text: string) {
+export function normalize(text: string) {
   return text.toLowerCase().replaceAll("ё", "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
